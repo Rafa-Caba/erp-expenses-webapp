@@ -1,0 +1,67 @@
+{
+  "name": "expenses-web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier . --write",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "msw:init": "node -e \"console.log('MSW uses browser setup only in this scaffold')\""
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint . --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@mui/icons-material": "^7.3.8",
+    "@mui/material": "^7.3.8",
+    "@mui/x-data-grid": "^8.27.3",
+    "@tanstack/react-query": "^5.90.21",
+    "@vitejs/plugin-react": "^5.1.4",
+    "axios": "^1.13.6",
+    "date-fns": "^4.1.0",
+    "react-hook-form": "^7.71.2",
+    "react-router-dom": "^7.13.1",
+    "recharts": "^3.7.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25.3.3",
+    "@types/react-dom": "^19.2.3",
+    "@vitest/ui": "^4.0.18",
+    "eslint": "^9.39.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "husky": "^9.1.7",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.2",
+    "msw": "^2.12.10",
+    "prettier": "^3.8.1",
+    "vitest": "^4.0.18"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
