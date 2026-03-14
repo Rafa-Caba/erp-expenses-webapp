@@ -10,6 +10,9 @@ import { HomeRedirect } from "./HomeRedirect";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { RegisterPage } from "../../features/auth/pages/RegisterPage";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
+import { AdminUsersPage } from "../../features/adminUsers/pages/AdminUsersPage";
+import { NewAdminUserPage } from "../../features/adminUsers/pages/NewAdminUserPage";
+import { EditAdminUserPage } from "../../features/adminUsers/pages/EditAdminUserPage";
 import { LedgerPage } from "../../features/ledger/pages/LedgerPage";
 import { AccountsPage } from "../../features/accounts/pages/AccountsPage";
 import { BudgetsPage } from "../../features/budgets/pages/BudgetsPage";
@@ -25,6 +28,7 @@ import { WorkspaceMembersPage } from "../../features/workspaces/pages/WorkspaceM
 import { NewWorkspaceMemberPage } from "../../features/workspaces/pages/NewWorkspaceMemberPage";
 import { EditWorkspaceMemberPage } from "../../features/workspaces/pages/EditWorkspaceMemberPage";
 import { WorkspaceSettingsPage } from "../../features/workspaceSettings/pages/WorkspaceSettingsPage";
+import { ProfilePage } from "../../features/profile/pages/ProfilePage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -41,6 +45,8 @@ export const router = createBrowserRouter([
                 children: [
                     { index: true, element: <HomeRedirect /> },
 
+                    { path: "profile", element: <ProfilePage /> },
+
                     {
                         path: "workspaces",
                         children: [
@@ -49,7 +55,14 @@ export const router = createBrowserRouter([
                             { path: ":workspaceId/edit", element: <EditWorkspacePage /> },
                         ],
                     },
-
+                    {
+                        path: "admin",
+                        children: [
+                            { path: "users", element: <AdminUsersPage /> },
+                            { path: "users/new", element: <NewAdminUserPage /> },
+                            { path: "users/:userId/edit", element: <EditAdminUserPage /> },
+                        ],
+                    },
                     {
                         path: "personal",
                         element: <ScopeLayout scopeType="PERSONAL" />,

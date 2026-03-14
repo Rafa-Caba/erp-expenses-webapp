@@ -1,7 +1,7 @@
-// src/users/user.types.ts
+// src/features/adminUsers/types/user.types.ts
 
-import type { ApiMessageResponse, PaginationMeta } from "../../shared/types/api.types";
-import type { IsoDateString, Nullable, UserRole } from "../../shared/types/common.types";
+import type { ApiMessageResponse, PaginationMeta } from "../../../shared/types/api.types";
+import type { IsoDateString, Nullable, UserRole } from "../../../shared/types/common.types";
 
 export interface UserRecord {
     id: string;

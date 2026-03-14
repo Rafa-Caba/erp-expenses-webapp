@@ -1,7 +1,7 @@
 // src/auth/auth.types.ts
 
-import type { IsoDateString, Nullable, UserRole } from "../types/common.types";
-import type { ApiMessageResponse } from "../types/api.types";
+import type { ApiMessageResponse } from "../../../shared/types/api.types";
+import type { IsoDateString, Nullable, UserRole } from "../../../shared/types/common.types";
 
 export interface AuthTokens {
     accessToken: string;

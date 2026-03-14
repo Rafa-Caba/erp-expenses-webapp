@@ -3,10 +3,10 @@
 import React from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
+import Avatar from "@mui/material/Avatar";
 import Badge from "@mui/material/Badge";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
-import SavingsIcon from "@mui/icons-material/Savings";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
@@ -16,7 +16,10 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -29,14 +32,20 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import SavingsIcon from "@mui/icons-material/Savings";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
+import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
 import { useScopeStore } from "../scope/scope.store";
 import { ScopeSwitcher } from "./ScopeSwitcher";
-import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
 
 const drawerWidth = 280;
+const accountDrawerWidth = 300;
 
 type NavItem = {
     label: string;
@@ -143,6 +152,10 @@ export function AppShell() {
     const allItems = [...scopedNavItems, ...globalNavItems];
 
     const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
+    const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] = React.useState(false);
+    const [accountMenuAnchorEl, setAccountMenuAnchorEl] = React.useState<HTMLElement | null>(null);
+
+    const accountMenuOpen = Boolean(accountMenuAnchorEl);
 
     const contextLabel =
         activeWorkspace === null
@@ -162,16 +175,61 @@ export function AppShell() {
                     ? "Panel de casa"
                     : "Panel de negocio";
 
-    const showBottomNavigation = !location.pathname.startsWith("/app/workspaces");
+    const isGlobalSection =
+        location.pathname.startsWith("/app/workspaces") ||
+        location.pathname.startsWith("/app/admin") ||
+        location.pathname.startsWith("/app/profile");
+
+    const showBottomNavigation = !isGlobalSection;
+
+    const isAdminUsersRoute = location.pathname.startsWith("/app/admin/users");
 
     const currentBottomValue = React.useMemo(() => {
         const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
-        const hitIndex = bottomItems.findIndex((item) =>
-            location.pathname.startsWith(item.to)
-        );
+        const hitIndex = bottomItems.findIndex((item) => location.pathname.startsWith(item.to));
 
         return hitIndex === -1 ? 0 : hitIndex;
     }, [location.pathname, scopedNavItems]);
+
+    /**
+     * Temporary scaffold until the authenticated user role source is wired into AppShell.
+     * Replace this with your real role selector once you pass the auth user source.
+     */
+    const canAccessAdminUsers = true;
+
+    const handleOpenAccountMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAccountMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleCloseAccountMenu = () => {
+        setAccountMenuAnchorEl(null);
+    };
+
+    const handleOpenMobileAccountDrawer = () => {
+        setMobileAccountDrawerOpen(true);
+    };
+
+    const handleCloseMobileAccountDrawer = () => {
+        setMobileAccountDrawerOpen(false);
+    };
+
+    const handleNavigateToAdminUsers = () => {
+        handleCloseAccountMenu();
+        handleCloseMobileAccountDrawer();
+        navigate("/app/admin/users");
+    };
+
+    const handleNavigateToProfile = () => {
+        handleCloseAccountMenu();
+        handleCloseMobileAccountDrawer();
+        navigate("/app/profile");
+    };
+
+    const handleLogout = () => {
+        handleCloseAccountMenu();
+        handleCloseMobileAccountDrawer();
+        logoutMutation.mutate();
+    };
 
     const drawerContent = (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -217,6 +275,92 @@ export function AppShell() {
         </Box>
     );
 
+    const mobileAccountDrawerContent = (
+        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Cuenta
+                </Typography>
+
+                <Avatar
+                    variant="rounded"
+                    sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: "transparent",
+                        border: "1px solid",
+                        borderColor: "divider",
+                    }}
+                >
+                    <PersonOutlineIcon fontSize="small" />
+                </Avatar>
+            </Toolbar>
+
+            <Divider />
+
+            <List sx={{ pt: 0 }}>
+                <ListItemButton onClick={handleNavigateToProfile}>
+                    <ListItemIcon>
+                        <PersonOutlineIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Perfil" secondary="Ver y editar tu información" />
+                </ListItemButton>
+
+                <ListItemButton disabled>
+                    <ListItemIcon>
+                        <PaletteOutlinedIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                        primary="Tema"
+                        secondary="Placeholder para selector de tema"
+                    />
+                </ListItemButton>
+            </List>
+
+            <Divider />
+
+            <Box sx={{ p: 2, display: "grid", gap: 1.5 }}>
+                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700 }}>
+                    CONTEXTO
+                </Typography>
+
+                <ScopeSwitcher />
+
+                {canAccessAdminUsers ? (
+                    <ListItemButton
+                        onClick={handleNavigateToAdminUsers}
+                        sx={{
+                            borderRadius: 2,
+                            border: "1px solid",
+                            borderColor: isAdminUsersRoute ? "primary.main" : "divider",
+                        }}
+                    >
+                        <ListItemIcon>
+                            <AdminPanelSettingsOutlinedIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Usuarios"
+                            secondary="Vista global para administración"
+                        />
+                    </ListItemButton>
+                ) : null}
+            </Box>
+
+            <Divider sx={{ mt: "auto" }} />
+
+            <List sx={{ pt: 0 }}>
+                <ListItemButton onClick={handleLogout} disabled={logoutMutation.isPending}>
+                    <ListItemIcon>
+                        <LogoutRoundedIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                        primary={logoutMutation.isPending ? "Cerrando sesión..." : "Cerrar sesión"}
+                    />
+                </ListItemButton>
+            </List>
+        </Box>
+    );
+
     return (
         <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
             <AppBar position="fixed" sx={{ zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1 }}>
@@ -238,17 +382,92 @@ export function AppShell() {
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <ScopeSwitcher />
+                        {!isMobile ? (
+                            <>
+                                <ScopeSwitcher />
 
-                        <Button
-                            color="inherit"
-                            variant="outlined"
-                            size="small"
-                            onClick={() => logoutMutation.mutate()}
-                            disabled={logoutMutation.isPending}
-                        >
-                            Cerrar sesión
-                        </Button>
+                                {canAccessAdminUsers ? (
+                                    <Button
+                                        color="inherit"
+                                        variant={isAdminUsersRoute ? "contained" : "outlined"}
+                                        size="small"
+                                        onClick={handleNavigateToAdminUsers}
+                                        startIcon={<AdminPanelSettingsOutlinedIcon />}
+                                    >
+                                        Usuarios
+                                    </Button>
+                                ) : null}
+
+                                <Tooltip title="Cuenta">
+                                    <IconButton color="inherit" onClick={handleOpenAccountMenu}>
+                                        <Avatar
+                                            variant="rounded"
+                                            sx={{
+                                                width: 38,
+                                                height: 38,
+                                                bgcolor: "transparent",
+                                                border: "1px solid",
+                                                borderColor: "currentColor",
+                                                color: "inherit",
+                                            }}
+                                        >
+                                            <PersonOutlineIcon fontSize="small" />
+                                        </Avatar>
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Menu
+                                    anchorEl={accountMenuAnchorEl}
+                                    open={accountMenuOpen}
+                                    onClose={handleCloseAccountMenu}
+                                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                                    transformOrigin={{ vertical: "top", horizontal: "right" }}
+                                >
+                                    <MenuItem onClick={handleNavigateToProfile}>
+                                        <ListItemIcon>
+                                            <PersonOutlineIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        Perfil
+                                    </MenuItem>
+
+                                    <MenuItem disabled>
+                                        <ListItemIcon>
+                                            <PaletteOutlinedIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        Tema
+                                    </MenuItem>
+
+                                    <Divider />
+
+                                    <MenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
+                                        <ListItemIcon>
+                                            <LogoutRoundedIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        {logoutMutation.isPending
+                                            ? "Cerrando sesión..."
+                                            : "Cerrar sesión"}
+                                    </MenuItem>
+                                </Menu>
+                            </>
+                        ) : (
+                            <Tooltip title="Cuenta">
+                                <IconButton color="inherit" onClick={handleOpenMobileAccountDrawer}>
+                                    <Avatar
+                                        variant="rounded"
+                                        sx={{
+                                            width: 38,
+                                            height: 38,
+                                            bgcolor: "transparent",
+                                            border: "1px solid",
+                                            borderColor: "currentColor",
+                                            color: "inherit",
+                                        }}
+                                    >
+                                        <PersonOutlineIcon fontSize="small" />
+                                    </Avatar>
+                                </IconButton>
+                            </Tooltip>
+                        )}
                     </Box>
                 </Toolbar>
             </AppBar>
@@ -282,6 +501,24 @@ export function AppShell() {
                     }}
                 >
                     {drawerContent}
+                </Drawer>
+            )}
+
+            {isMobile && (
+                <Drawer
+                    anchor="right"
+                    variant="temporary"
+                    open={mobileAccountDrawerOpen}
+                    onClose={handleCloseMobileAccountDrawer}
+                    ModalProps={{ keepMounted: true }}
+                    sx={{
+                        "& .MuiDrawer-paper": {
+                            width: accountDrawerWidth,
+                            maxWidth: "80vw",
+                        },
+                    }}
+                >
+                    {mobileAccountDrawerContent}
                 </Drawer>
             )}
 

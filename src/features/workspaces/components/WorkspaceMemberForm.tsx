@@ -19,6 +19,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { UserSelect } from "../../components/UserSelect";
 import type {
     MemberRole,
     MemberStatus,
@@ -110,7 +111,7 @@ function validateWorkspaceMemberForm(
     const errors: WorkspaceMemberFormErrors = {};
 
     if (mode === "create" && !values.userId.trim()) {
-        errors.userId = "El userId es obligatorio.";
+        errors.userId = "El usuario es obligatorio.";
     }
 
     if (!values.displayName.trim()) {
@@ -151,6 +152,13 @@ export function WorkspaceMemberForm({
                     [field]: event.target.value,
                 }));
             };
+
+    const handleUserIdChange = (userId: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            userId,
+        }));
+    };
 
     const handleRoleChange = (event: SelectChangeEvent<string>) => {
         const value = event.target.value;
@@ -239,18 +247,20 @@ export function WorkspaceMemberForm({
 
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField
-                                    label="User ID"
+                                <UserSelect
                                     value={values.userId}
-                                    onChange={handleTextChange("userId")}
+                                    onChange={handleUserIdChange}
+                                    label="Usuario"
                                     error={Boolean(errors.userId)}
                                     helperText={
                                         mode === "edit"
-                                            ? "El userId no se edita desde aquí."
-                                            : errors.userId
+                                            ? "El usuario asociado no se edita desde aquí."
+                                            : errors.userId ?? "Selecciona un usuario existente para asociarlo al miembro."
                                     }
-                                    disabled={mode === "edit"}
-                                    fullWidth
+                                    disabled={isSubmitting || mode === "edit"}
+                                    allowEmpty={false}
+                                    activeFilter="ACTIVE"
+                                    emptyOptionLabel="Selecciona un usuario"
                                 />
                             </Grid>
 
