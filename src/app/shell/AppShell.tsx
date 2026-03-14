@@ -27,6 +27,7 @@ import { useTheme } from "@mui/material/styles";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -113,6 +114,12 @@ export function AppShell() {
             to: `${scopeBase}/accounts`,
             icon: <AccountBalanceWalletIcon />,
             showInBottom: true,
+        },
+        {
+            label: "Tarjetas",
+            to: `${scopeBase}/cards`,
+            icon: <CreditCardIcon />,
+            showInBottom: false,
         },
         {
             label: "Presupuestos",

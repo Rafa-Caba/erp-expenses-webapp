@@ -9,6 +9,12 @@ export interface ApiErrorResponse {
     message: string;
 }
 
+export type AxiosLikeError = Error & {
+    response?: {
+        data?: ApiErrorResponse;
+    };
+};
+
 export interface ApiValidationIssues {
     formErrors: string[];
     fieldErrors: Record<string, string[]>;

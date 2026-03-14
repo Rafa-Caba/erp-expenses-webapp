@@ -29,6 +29,9 @@ import { NewWorkspaceMemberPage } from "../../features/workspaces/pages/NewWorks
 import { EditWorkspaceMemberPage } from "../../features/workspaces/pages/EditWorkspaceMemberPage";
 import { WorkspaceSettingsPage } from "../../features/workspaceSettings/pages/WorkspaceSettingsPage";
 import { ProfilePage } from "../../features/profile/pages/ProfilePage";
+import { CardsPage } from "../../features/cards/pages/CardsPage";
+import { NewCardPage } from "../../features/cards/pages/NewCardPage";
+import { EditCardPage } from "../../features/cards/pages/EditCardPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -76,6 +79,9 @@ export const router = createBrowserRouter([
                             { path: "budgets", element: <BudgetsPage /> },
                             { path: "budgets/new", element: <NewBudgetPage /> },
                             { path: "budgets/:budgetId/edit", element: <EditBudgetPage /> },
+                            { path: "cards", element: <CardsPage /> },
+                            { path: "cards/new", element: <NewCardPage /> },
+                            { path: "cards/:cardId/edit", element: <EditCardPage /> },
                             { path: "members", element: <WorkspaceMembersPage /> },
                             { path: "members/new", element: <NewWorkspaceMemberPage /> },
                             {
@@ -99,6 +105,10 @@ export const router = createBrowserRouter([
                             { path: "budgets", element: <BudgetsPage /> },
                             { path: "budgets/new", element: <NewBudgetPage /> },
                             { path: "budgets/:budgetId/edit", element: <EditBudgetPage /> },
+                            { path: "cards", element: <CardsPage /> },
+                            { path: "cards/new", element: <NewCardPage /> },
+                            { path: "cards/:cardId/edit", element: <EditCardPage /> },
+
                             { path: "members", element: <WorkspaceMembersPage /> },
                             { path: "members/new", element: <NewWorkspaceMemberPage /> },
                             {
