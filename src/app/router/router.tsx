@@ -35,6 +35,9 @@ import { EditCardPage } from "../../features/cards/pages/EditCardPage";
 import { CategoriesPage } from "../../features/categories/pages/CategoriesPage";
 import { NewCategoryPage } from "../../features/categories/pages/NewCategoryPage";
 import { EditCategoryPage } from "../../features/categories/pages/EditCategoryPage";
+import { DebtsPage } from "../../features/debts/pages/DebtsPage";
+import { NewDebtPage } from "../../features/debts/pages/NewDebtPage";
+import { EditDebtPage } from "../../features/debts/pages/EditDebtPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -94,6 +97,9 @@ export const router = createBrowserRouter([
                                 path: "members/:memberId/edit",
                                 element: <EditWorkspaceMemberPage />,
                             },
+                            { path: "debts", element: <DebtsPage /> },
+                            { path: "debts/new", element: <NewDebtPage /> },
+                            { path: "debts/:debtId/edit", element: <EditDebtPage /> },
                             { path: "reconciliation", element: <ReconciliationPage /> },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],
@@ -124,6 +130,9 @@ export const router = createBrowserRouter([
                             { path: "categories", element: <CategoriesPage /> },
                             { path: "categories/new", element: <NewCategoryPage /> },
                             { path: "categories/:categoryId/edit", element: <EditCategoryPage /> },
+                            { path: "debts", element: <DebtsPage /> },
+                            { path: "debts/new", element: <NewDebtPage /> },
+                            { path: "debts/:debtId/edit", element: <EditDebtPage /> },
                             { path: "reconciliation", element: <ReconciliationPage /> },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],

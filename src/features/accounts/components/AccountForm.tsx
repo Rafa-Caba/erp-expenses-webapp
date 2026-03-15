@@ -18,6 +18,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
 import type { CurrencyCode } from "../../../shared/types/common.types";
 import type { AccountType } from "../types/account.types";
 
@@ -48,8 +49,20 @@ type AccountFormField =
 
 type AccountFormErrors = Partial<Record<AccountFormField, string>>;
 
+type AccountFormTextField =
+    | "name"
+    | "bankName"
+    | "accountNumberMasked"
+    | "initialBalance"
+    | "currentBalance"
+    | "creditLimit"
+    | "statementClosingDay"
+    | "paymentDueDay"
+    | "notes";
+
 type AccountFormProps = {
     mode: "create" | "edit";
+    workspaceId: string | null;
     initialValues: AccountFormValues;
     isSubmitting: boolean;
     submitErrorMessage?: string | null;
@@ -101,6 +114,7 @@ function validateAccountForm(values: AccountFormValues): AccountFormErrors {
 
 export function AccountForm({
     mode,
+    workspaceId,
     initialValues,
     isSubmitting,
     submitErrorMessage = null,
@@ -115,7 +129,7 @@ export function AccountForm({
     }, [initialValues]);
 
     const handleTextChange =
-        (field: keyof AccountFormValues) =>
+        (field: AccountFormTextField) =>
             (event: React.ChangeEvent<HTMLInputElement>) => {
                 setValues((currentValues) => ({
                     ...currentValues,
@@ -149,6 +163,13 @@ export function AccountForm({
                 currency: value,
             }));
         }
+    };
+
+    const handleOwnerMemberChange = (value: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            ownerMemberId: value,
+        }));
     };
 
     const handleCheckboxChange =
@@ -286,11 +307,15 @@ export function AccountForm({
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField
-                                    label="Owner member ID (opcional)"
+                                <WorkspaceMemberSelect
+                                    workspaceId={workspaceId}
                                     value={values.ownerMemberId}
-                                    onChange={handleTextChange("ownerMemberId")}
-                                    fullWidth
+                                    onChange={handleOwnerMemberChange}
+                                    label="Miembro titular (opcional)"
+                                    helperText="Opcional. Déjalo vacío si la cuenta no pertenece a un miembro específico."
+                                    disabled={isSubmitting}
+                                    allowEmpty
+                                    emptyOptionLabel="Sin miembro específico"
                                 />
                             </Grid>
 

@@ -175,6 +175,7 @@ export function EditAccountPage() {
         >
             <AccountForm
                 mode="edit"
+                workspaceId={workspaceId}
                 initialValues={initialValues}
                 isSubmitting={updateAccountMutation.isPending}
                 submitErrorMessage={submitErrorMessage}

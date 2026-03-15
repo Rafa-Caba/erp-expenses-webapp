@@ -128,6 +128,7 @@ export function NewAccountPage() {
         >
             <AccountForm
                 mode="create"
+                workspaceId={workspaceId}
                 initialValues={INITIAL_VALUES}
                 isSubmitting={createAccountMutation.isPending}
                 submitErrorMessage={submitErrorMessage}

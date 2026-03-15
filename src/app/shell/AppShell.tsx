@@ -39,6 +39,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
@@ -138,6 +139,12 @@ export function AppShell() {
             label: "Categorías",
             to: `${scopeBase}/categories`,
             icon: <LabelOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Deudas",
+            to: `${scopeBase}/debts`,
+            icon: <RequestQuoteOutlinedIcon />,
             showInBottom: false,
         },
         {
