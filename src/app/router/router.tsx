@@ -32,6 +32,9 @@ import { ProfilePage } from "../../features/profile/pages/ProfilePage";
 import { CardsPage } from "../../features/cards/pages/CardsPage";
 import { NewCardPage } from "../../features/cards/pages/NewCardPage";
 import { EditCardPage } from "../../features/cards/pages/EditCardPage";
+import { CategoriesPage } from "../../features/categories/pages/CategoriesPage";
+import { NewCategoryPage } from "../../features/categories/pages/NewCategoryPage";
+import { EditCategoryPage } from "../../features/categories/pages/EditCategoryPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -84,6 +87,9 @@ export const router = createBrowserRouter([
                             { path: "cards/:cardId/edit", element: <EditCardPage /> },
                             { path: "members", element: <WorkspaceMembersPage /> },
                             { path: "members/new", element: <NewWorkspaceMemberPage /> },
+                            { path: "categories", element: <CategoriesPage /> },
+                            { path: "categories/new", element: <NewCategoryPage /> },
+                            { path: "categories/:categoryId/edit", element: <EditCategoryPage /> },
                             {
                                 path: "members/:memberId/edit",
                                 element: <EditWorkspaceMemberPage />,
@@ -115,6 +121,9 @@ export const router = createBrowserRouter([
                                 path: "members/:memberId/edit",
                                 element: <EditWorkspaceMemberPage />,
                             },
+                            { path: "categories", element: <CategoriesPage /> },
+                            { path: "categories/new", element: <NewCategoryPage /> },
+                            { path: "categories/:categoryId/edit", element: <EditCategoryPage /> },
                             { path: "reconciliation", element: <ReconciliationPage /> },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],

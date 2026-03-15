@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -131,6 +132,12 @@ export function AppShell() {
             label: "Miembros",
             to: `${scopeBase}/members`,
             icon: <PeopleAltIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Categorías",
+            to: `${scopeBase}/categories`,
+            icon: <LabelOutlinedIcon />,
             showInBottom: false,
         },
         {
