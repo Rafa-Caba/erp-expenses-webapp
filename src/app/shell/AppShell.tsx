@@ -28,6 +28,7 @@ import { useTheme } from "@mui/material/styles";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -185,6 +186,12 @@ export function AppShell() {
             label: "Reminders",
             to: `${scopeBase}/reminders`,
             icon: <NotificationsActiveOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Reportes",
+            to: `${scopeBase}/reports`,
+            icon: <AssessmentOutlinedIcon />,
             showInBottom: false,
         },
         {

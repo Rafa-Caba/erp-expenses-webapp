@@ -53,6 +53,9 @@ import { EditSavingGoalPage } from "../../features/savingGoals/pages/EditSavingG
 import { RemindersPage } from "../../features/reminders/pages/RemindersPage";
 import { NewReminderPage } from "../../features/reminders/pages/NewReminderPage";
 import { EditReminderPage } from "../../features/reminders/pages/EditReminderPage";
+import { ReportsPage } from "../../features/reports/pages/ReportsPage";
+import { NewReportPage } from "../../features/reports/pages/NewReportPage";
+import { EditReportPage } from "../../features/reports/pages/EditReportPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -140,6 +143,12 @@ export const router = createBrowserRouter([
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
                             },
+                            { path: "reports", element: <ReportsPage /> },
+                            { path: "reports/new", element: <NewReportPage /> },
+                            {
+                                path: "reports/:reportId/edit",
+                                element: <EditReportPage />,
+                            },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],
                     },
@@ -196,6 +205,12 @@ export const router = createBrowserRouter([
                             {
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
+                            },
+                            { path: "reports", element: <ReportsPage /> },
+                            { path: "reports/new", element: <NewReportPage /> },
+                            {
+                                path: "reports/:reportId/edit",
+                                element: <EditReportPage />,
                             },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],

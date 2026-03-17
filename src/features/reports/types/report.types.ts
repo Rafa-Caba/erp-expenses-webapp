@@ -1,4 +1,4 @@
-// src/reports/types/report.types.ts
+// src/features/reports/types/report.types.ts
 
 import type {
     CurrencyCode,
@@ -17,6 +17,7 @@ export type ReportType =
 export type ReportStatus = "pending" | "generated" | "failed" | "archived";
 export type ReportGroupBy = "day" | "week" | "month" | "category" | "member";
 export type ReportExportFormat = "csv" | "xlsx";
+export type ReportFileResourceType = "image" | "video" | "raw" | "auto";
 
 export interface ReportFilters {
     dateFrom?: Nullable<string>;
@@ -38,6 +39,10 @@ export interface ReportRecord {
     filters: Nullable<ReportFilters>;
     generatedByMemberId: Nullable<string>;
     fileUrl: Nullable<string>;
+    filePublicId: Nullable<string>;
+    fileResourceType: Nullable<ReportFileResourceType>;
+    fileName: Nullable<string>;
+    fileFormat: Nullable<string>;
     notes: Nullable<string>;
     status: ReportStatus;
     isVisible: boolean;
@@ -52,6 +57,10 @@ export interface CreateReportPayload {
     filters?: Nullable<ReportFilters>;
     generatedByMemberId?: Nullable<string>;
     fileUrl?: Nullable<string>;
+    filePublicId?: Nullable<string>;
+    fileResourceType?: Nullable<ReportFileResourceType>;
+    fileName?: Nullable<string>;
+    fileFormat?: Nullable<string>;
     notes?: Nullable<string>;
     status?: ReportStatus;
     isVisible?: boolean;
@@ -64,6 +73,10 @@ export interface UpdateReportPayload {
     filters?: Nullable<ReportFilters>;
     generatedByMemberId?: Nullable<string>;
     fileUrl?: Nullable<string>;
+    filePublicId?: Nullable<string>;
+    fileResourceType?: Nullable<ReportFileResourceType>;
+    fileName?: Nullable<string>;
+    fileFormat?: Nullable<string>;
     notes?: Nullable<string>;
     status?: ReportStatus;
     isVisible?: boolean;
@@ -83,6 +96,10 @@ export interface ExportReportFile {
     format: ReportExportFormat;
     fileName: string;
     fileUrl: Nullable<string>;
+    filePublicId: string;
+    fileResourceType: ReportFileResourceType;
+    fileFormat: Nullable<string>;
+    fileBytes: number;
 }
 
 export interface ExportReportResponse {
@@ -191,7 +208,12 @@ export interface DebtSummaryReport {
     series: DebtSummarySeriesItem[];
 }
 
-export type BudgetComputedStatus = "draft" | "active" | "completed" | "exceeded" | "archived";
+export type BudgetComputedStatus =
+    | "draft"
+    | "active"
+    | "completed"
+    | "exceeded"
+    | "archived";
 
 export interface BudgetSummaryItem {
     budgetId: string;

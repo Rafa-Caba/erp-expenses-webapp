@@ -1,4 +1,4 @@
-// src/reports/services/report.service.ts
+// src/features/reports/services/report.service.ts
 
 import type { AxiosInstance } from "axios";
 
