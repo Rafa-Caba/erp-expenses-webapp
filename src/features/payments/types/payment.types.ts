@@ -1,11 +1,14 @@
-// src/payments/types/payment.types.ts
+// src/features/payments/types/payment.types.ts
 
 import type {
     CurrencyCode,
     IsoDateString,
     Nullable,
 } from "../../../shared/types/common.types";
-import type { CollectionResponse, EntityResponse } from "../../../shared/types/api.types";
+import type {
+    CollectionResponse,
+    EntityResponse,
+} from "../../../shared/types/api.types";
 
 export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
 export type PaymentMethod = "cash" | "bank_transfer" | "card" | "check" | "other";

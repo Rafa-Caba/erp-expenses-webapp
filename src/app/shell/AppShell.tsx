@@ -39,7 +39,10 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
@@ -145,6 +148,24 @@ export function AppShell() {
             label: "Deudas",
             to: `${scopeBase}/debts`,
             icon: <RequestQuoteOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Pagos",
+            to: `${scopeBase}/payments`,
+            icon: <PaymentsOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Transacciones",
+            to: `${scopeBase}/transactions`,
+            icon: <SwapHorizOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Recibos",
+            to: `${scopeBase}/receipts`,
+            icon: <ReceiptLongOutlinedIcon />,
             showInBottom: false,
         },
         {

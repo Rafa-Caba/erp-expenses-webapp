@@ -38,6 +38,15 @@ import { EditCategoryPage } from "../../features/categories/pages/EditCategoryPa
 import { DebtsPage } from "../../features/debts/pages/DebtsPage";
 import { NewDebtPage } from "../../features/debts/pages/NewDebtPage";
 import { EditDebtPage } from "../../features/debts/pages/EditDebtPage";
+import { PaymentsPage } from "../../features/payments/pages/PaymentsPage";
+import { NewPaymentPage } from "../../features/payments/pages/NewPaymentPage";
+import { EditPaymentPage } from "../../features/payments/pages/EditPaymentPage";
+import { TransactionsPage } from "../../features/transactions/pages/TransactionsPage";
+import { NewTransactionPage } from "../../features/transactions/pages/NewTransactionPage";
+import { EditTransactionPage } from "../../features/transactions/pages/EditTransactionPage";
+import { ReceiptsPage } from "../../features/receipts/pages/ReceiptsPage";
+import { NewReceiptPage } from "../../features/receipts/pages/NewReceiptPage";
+import { EditReceiptPage } from "../../features/receipts/pages/EditReceiptPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -100,6 +109,18 @@ export const router = createBrowserRouter([
                             { path: "debts", element: <DebtsPage /> },
                             { path: "debts/new", element: <NewDebtPage /> },
                             { path: "debts/:debtId/edit", element: <EditDebtPage /> },
+                            { path: "payments", element: <PaymentsPage /> },
+                            { path: "payments/new", element: <NewPaymentPage /> },
+                            { path: "payments/:paymentId/edit", element: <EditPaymentPage /> },
+                            { path: "transactions", element: <TransactionsPage /> },
+                            { path: "transactions/new", element: <NewTransactionPage /> },
+                            {
+                                path: "transactions/:transactionId/edit",
+                                element: <EditTransactionPage />,
+                            },
+                            { path: "receipts", element: <ReceiptsPage /> },
+                            { path: "receipts/new", element: <NewReceiptPage /> },
+                            { path: "receipts/:receiptId/edit", element: <EditReceiptPage /> },
                             { path: "reconciliation", element: <ReconciliationPage /> },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],
@@ -133,6 +154,18 @@ export const router = createBrowserRouter([
                             { path: "debts", element: <DebtsPage /> },
                             { path: "debts/new", element: <NewDebtPage /> },
                             { path: "debts/:debtId/edit", element: <EditDebtPage /> },
+                            { path: "payments", element: <PaymentsPage /> },
+                            { path: "payments/new", element: <NewPaymentPage /> },
+                            { path: "payments/:paymentId/edit", element: <EditPaymentPage /> },
+                            { path: "transactions", element: <TransactionsPage /> },
+                            { path: "transactions/new", element: <NewTransactionPage /> },
+                            {
+                                path: "transactions/:transactionId/edit",
+                                element: <EditTransactionPage />,
+                            },
+                            { path: "receipts", element: <ReceiptsPage /> },
+                            { path: "receipts/new", element: <NewReceiptPage /> },
+                            { path: "receipts/:receiptId/edit", element: <EditReceiptPage /> },
                             { path: "reconciliation", element: <ReconciliationPage /> },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],

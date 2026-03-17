@@ -1,16 +1,15 @@
-// src/features/components/WorkspaceMemberSelect.tsx
+// src/features/components/WorkspaceDebtSelect.tsx
 
 import { useId } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { type SelectChangeEvent } from "@mui/material/Select";
 
-import { useWorkspaceMembersQuery } from "../workspaces/hooks/useWorkspaceMembersQuery";
+import { useDebtsQuery } from "../debts/hooks/useDebtsQuery";
 
-type WorkspaceMemberSelectProps = {
+type WorkspaceDebtSelectProps = {
     workspaceId: string | null;
     value: string;
     onChange: (value: string) => void;
@@ -22,46 +21,46 @@ type WorkspaceMemberSelectProps = {
     emptyOptionLabel?: string;
 };
 
-export function WorkspaceMemberSelect({
+export function WorkspaceDebtSelect({
     workspaceId,
     value,
     onChange,
-    label = "Miembro",
+    label = "Deuda",
     helperText,
     disabled = false,
     error = false,
-    allowEmpty = true,
-    emptyOptionLabel = "Sin miembro específico",
-}: WorkspaceMemberSelectProps) {
+    allowEmpty = false,
+    emptyOptionLabel = "Sin deuda específica",
+}: WorkspaceDebtSelectProps) {
     const selectId = useId();
     const labelId = `${selectId}-label`;
 
-    const membersQuery = useWorkspaceMembersQuery(workspaceId);
-    const members = membersQuery.data?.members ?? [];
+    const debtsQuery = useDebtsQuery(workspaceId);
+    const debts = debtsQuery.data?.debts ?? [];
 
-    const hasSelectedMember = members.some((member) => member.id === value);
+    const hasSelectedDebt = debts.some((debt) => debt._id === value);
 
     const handleChange = (event: SelectChangeEvent<string>) => {
         onChange(event.target.value);
     };
 
-    const isDisabled = disabled || workspaceId === null || membersQuery.isLoading;
+    const isDisabled = disabled || workspaceId === null || debtsQuery.isLoading;
 
     const resolvedHelperText = (() => {
         if (workspaceId === null) {
             return "Primero debe existir un workspace activo.";
         }
 
-        if (membersQuery.isError) {
-            return "No se pudieron cargar los miembros del workspace.";
+        if (debtsQuery.isError) {
+            return "No se pudieron cargar las deudas del workspace.";
         }
 
-        if (membersQuery.isLoading) {
-            return "Cargando miembros...";
+        if (debtsQuery.isLoading) {
+            return "Cargando deudas...";
         }
 
-        if (members.length === 0) {
-            return "No hay miembros disponibles en este workspace.";
+        if (debts.length === 0) {
+            return "No hay deudas disponibles en este workspace.";
         }
 
         return helperText;
@@ -76,17 +75,16 @@ export function WorkspaceMemberSelect({
                 label={label}
                 value={value}
                 onChange={handleChange}
-                endAdornment={membersQuery.isLoading ? <CircularProgress size={18} /> : undefined}
             >
                 {allowEmpty ? <MenuItem value="">{emptyOptionLabel}</MenuItem> : null}
 
-                {!hasSelectedMember && value ? (
-                    <MenuItem value={value}>{`Miembro actual (${value})`}</MenuItem>
+                {!hasSelectedDebt && value ? (
+                    <MenuItem value={value}>{`Deuda actual (${value})`}</MenuItem>
                 ) : null}
 
-                {members.map((member) => (
-                    <MenuItem key={member.id} value={member.id}>
-                        {member.displayName}
+                {debts.map((debt) => (
+                    <MenuItem key={debt._id} value={debt._id}>
+                        {debt.description}
                     </MenuItem>
                 ))}
             </Select>

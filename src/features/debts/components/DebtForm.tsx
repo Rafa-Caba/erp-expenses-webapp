@@ -442,7 +442,7 @@ export function DebtForm({
 
                             <Grid size={{ xs: 12 }}>
                                 <TextField
-                                    label="Descripción"
+                                    label="Nombre de la Deuda"
                                     value={values.description}
                                     onChange={handleTextChange("description")}
                                     error={Boolean(errors.description)}

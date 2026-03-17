@@ -1,4 +1,4 @@
-// src/payments/services/payment.service.ts
+// src/features/payments/services/payment.service.ts
 
 import type { AxiosInstance } from "axios";
 
