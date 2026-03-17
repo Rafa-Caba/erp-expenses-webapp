@@ -22,6 +22,7 @@ import { WorkspaceAccountSelect } from "../../components/WorkspaceAccountSelect"
 import { WorkspaceCardSelect } from "../../components/WorkspaceCardSelect";
 import { WorkspaceDebtSelect } from "../../components/WorkspaceDebtSelect";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
+import { WorkspaceTransactionSelect } from "../../components/WorkspaceTransactionSelect";
 import type { CurrencyCode } from "../../../shared/types/common.types";
 import type { PaymentMethod, PaymentStatus } from "../types/payment.types";
 
@@ -53,12 +54,7 @@ type PaymentFormField =
 
 type PaymentFormErrors = Partial<Record<PaymentFormField, string>>;
 
-type PaymentFormTextField =
-    | "transactionId"
-    | "amount"
-    | "paymentDate"
-    | "reference"
-    | "notes";
+type PaymentFormTextField = "amount" | "paymentDate" | "reference" | "notes";
 
 type PaymentFormProps = {
     workspaceId: string | null;
@@ -257,6 +253,13 @@ export function PaymentForm({
         }));
     };
 
+    const handleTransactionChange = (value: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            transactionId: value,
+        }));
+    };
+
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -444,12 +447,14 @@ export function PaymentForm({
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField
-                                    label="Transaction ID"
+                                <WorkspaceTransactionSelect
+                                    workspaceId={workspaceId}
                                     value={values.transactionId}
-                                    onChange={handleTextChange("transactionId")}
-                                    helperText="Opcional. Se queda como texto mientras Transactions aún no tenga select."
-                                    fullWidth
+                                    onChange={handleTransactionChange}
+                                    label="Transacción"
+                                    helperText="Opcional. Vincula este pago con una transacción existente."
+                                    allowEmpty
+                                    emptyOptionLabel="Sin transacción específica"
                                 />
                             </Grid>
 

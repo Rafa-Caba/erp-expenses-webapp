@@ -14,6 +14,8 @@ import type { WorkspaceMemberRecord } from "../types/workspace-member.types";
 import { WorkspaceMemberPermissionsPreview } from "./WorkspaceMemberPermissionsPreview";
 import { WorkspaceMemberRoleChip } from "./WorkspaceMemberRoleChip";
 import { WorkspaceMemberStatusChip } from "./WorkspaceMemberStatusChip";
+import { useWorkspaceLabelById } from "../../../shared/utils/labels/workspace-label.util";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type WorkspaceMemberCardProps = {
     member: WorkspaceMemberRecord;
@@ -69,6 +71,15 @@ export function WorkspaceMemberCard({
 }: WorkspaceMemberCardProps) {
     const nextStatus = getNextStatus(member.status);
 
+    const workspaceLabel = useWorkspaceLabelById(
+        member.workspaceId,
+    ).label;
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        member.workspaceId,
+        member.invitedByUserId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -100,13 +111,13 @@ export function WorkspaceMemberCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Workspace:</strong> {member.workspaceId}
+                        <strong>Workspace:</strong> {workspaceLabel}
                     </Typography>
                     <Typography variant="body2">
                         <strong>Ingreso:</strong> {formatJoinedAt(member.joinedAt)}
                     </Typography>
                     <Typography variant="body2">
-                        <strong>Invitado por:</strong> {member.invitedByUserId ?? "—"}
+                        <strong>Invitado por:</strong> {memberLabel ?? "—"}
                     </Typography>
                     <Typography variant="body2">
                         <strong>Notas:</strong> {member.notes?.trim() ? member.notes : "—"}

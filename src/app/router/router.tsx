@@ -47,6 +47,12 @@ import { EditTransactionPage } from "../../features/transactions/pages/EditTrans
 import { ReceiptsPage } from "../../features/receipts/pages/ReceiptsPage";
 import { NewReceiptPage } from "../../features/receipts/pages/NewReceiptPage";
 import { EditReceiptPage } from "../../features/receipts/pages/EditReceiptPage";
+import { SavingGoalsPage } from "../../features/savingGoals/pages/SavingGoalsPage";
+import { NewSavingGoalPage } from "../../features/savingGoals/pages/NewSavingGoalPage";
+import { EditSavingGoalPage } from "../../features/savingGoals/pages/EditSavingGoalPage";
+import { RemindersPage } from "../../features/reminders/pages/RemindersPage";
+import { NewReminderPage } from "../../features/reminders/pages/NewReminderPage";
+import { EditReminderPage } from "../../features/reminders/pages/EditReminderPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -121,7 +127,19 @@ export const router = createBrowserRouter([
                             { path: "receipts", element: <ReceiptsPage /> },
                             { path: "receipts/new", element: <NewReceiptPage /> },
                             { path: "receipts/:receiptId/edit", element: <EditReceiptPage /> },
+                            { path: "saving-goals", element: <SavingGoalsPage /> },
+                            { path: "saving-goals/new", element: <NewSavingGoalPage /> },
+                            {
+                                path: "saving-goals/:savingGoalId/edit",
+                                element: <EditSavingGoalPage />,
+                            },
                             { path: "reconciliation", element: <ReconciliationPage /> },
+                            { path: "reminders", element: <RemindersPage /> },
+                            { path: "reminders/new", element: <NewReminderPage /> },
+                            {
+                                path: "reminders/:reminderId/edit",
+                                element: <EditReminderPage />,
+                            },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],
                     },
@@ -166,7 +184,19 @@ export const router = createBrowserRouter([
                             { path: "receipts", element: <ReceiptsPage /> },
                             { path: "receipts/new", element: <NewReceiptPage /> },
                             { path: "receipts/:receiptId/edit", element: <EditReceiptPage /> },
+                            { path: "saving-goals", element: <SavingGoalsPage /> },
+                            { path: "saving-goals/new", element: <NewSavingGoalPage /> },
+                            {
+                                path: "saving-goals/:savingGoalId/edit",
+                                element: <EditSavingGoalPage />,
+                            },
                             { path: "reconciliation", element: <ReconciliationPage /> },
+                            { path: "reminders", element: <RemindersPage /> },
+                            { path: "reminders/new", element: <NewReminderPage /> },
+                            {
+                                path: "reminders/:reminderId/edit",
+                                element: <EditReminderPage />,
+                            },
                             { path: "settings", element: <WorkspaceSettingsPage /> },
                         ],
                     },

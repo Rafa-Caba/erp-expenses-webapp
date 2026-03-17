@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { BudgetRecord } from "../types/budget.types";
 import { BudgetPeriodChip } from "./BudgetPeriodChip";
 import { BudgetStatusChip } from "./BudgetStatusChip";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type BudgetCardProps = {
     budget: BudgetRecord;
@@ -58,6 +59,12 @@ function getProgressColor(
 }
 
 export function BudgetCard({ budget, isSelected, onEdit, onDelete }: BudgetCardProps) {
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        budget.workspaceId,
+        budget.memberId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -136,7 +143,7 @@ export function BudgetCard({ budget, isSelected, onEdit, onDelete }: BudgetCardP
                     </Typography>
 
                     <Typography variant="body2">
-                        <strong>Miembro:</strong> {budget.memberId ?? "—"}
+                        <strong>Miembro:</strong> {memberLabel ?? "—"}
                     </Typography>
 
                     <Typography variant="body2">

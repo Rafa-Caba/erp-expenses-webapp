@@ -6,9 +6,10 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 
-import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
+import { Page } from "../../../shared/ui/Page/Page";
 import { PaymentForm, type PaymentFormValues } from "../components/PaymentForm";
 import { usePaymentByIdQuery } from "../hooks/usePaymentByIdQuery";
 import { useUpdatePaymentMutation } from "../hooks/usePaymentMutations";
@@ -70,14 +71,6 @@ function toUpdatePaymentPayload(values: PaymentFormValues): UpdatePaymentPayload
     };
 }
 
-function getPaymentErrorMessage(error: Error | null, fallbackMessage: string): string {
-    if (!error) {
-        return fallbackMessage;
-    }
-
-    return error.message || fallbackMessage;
-}
-
 export function EditPaymentPage() {
     const navigate = useNavigate();
     const params = useParams<{ paymentId: string }>();
@@ -119,7 +112,7 @@ export function EditPaymentPage() {
         return (
             <Page title="Editar pago" subtitle="No fue posible cargar el pago.">
                 <Alert severity="error">
-                    {getPaymentErrorMessage(
+                    {getApiErrorMessage(
                         paymentQuery.error,
                         "No se pudo obtener el pago."
                     )}
@@ -129,7 +122,7 @@ export function EditPaymentPage() {
     }
 
     const submitErrorMessage = updatePaymentMutation.isError
-        ? getPaymentErrorMessage(
+        ? getApiErrorMessage(
             updatePaymentMutation.error,
             "No se pudo actualizar el pago."
         )

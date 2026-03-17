@@ -9,6 +9,10 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { useAccountLabelById } from "../../../shared/utils/labels/account-label.util";
+import { useCardLabelById } from "../../../shared/utils/labels/card-label.util";
+import { useCategoryLabelById } from "../../../shared/utils/labels/category-label.util";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 import type { TransactionRecord } from "../types/transaction.types";
 import { TransactionStatusChip } from "./TransactionStatusChip";
 import { TransactionTypeChip } from "./TransactionTypeChip";
@@ -40,21 +44,28 @@ function getVisibilityLabel(isVisible: boolean): string {
     return isVisible ? "Visible" : "Oculta";
 }
 
-function getSourceSummary(transaction: TransactionRecord): string {
+function getSourceSummary(params: {
+    transaction: TransactionRecord;
+    accountLabel: string;
+    destinationAccountLabel: string;
+    cardLabel: string;
+}): string {
+    const { transaction, accountLabel, destinationAccountLabel, cardLabel } = params;
+
     if (transaction.type === "transfer") {
-        return `Origen: ${transaction.accountId ?? "—"} → Destino: ${transaction.destinationAccountId ?? "—"}`;
+        return `Origen: ${accountLabel} → Destino: ${destinationAccountLabel}`;
     }
 
     if (transaction.type === "debt_payment") {
-        return `Cuenta: ${transaction.accountId ?? "—"} • Tarjeta: ${transaction.cardId ?? "—"}`;
+        return `Cuenta: ${accountLabel} • Tarjeta: ${cardLabel}`;
     }
 
-    if (transaction.cardId) {
-        return `Tarjeta: ${transaction.cardId}`;
+    if (cardLabel !== "—" && cardLabel !== "Cargando...") {
+        return `Tarjeta: ${cardLabel}`;
     }
 
-    if (transaction.accountId) {
-        return `Cuenta: ${transaction.accountId}`;
+    if (accountLabel !== "—" && accountLabel !== "Cargando...") {
+        return `Cuenta: ${accountLabel}`;
     }
 
     return "Sin fuente";
@@ -66,6 +77,38 @@ export function TransactionCard({
     onEdit,
     onArchive,
 }: TransactionCardProps) {
+    const memberLabel = useWorkspaceMemberLabelById(
+        transaction.workspaceId,
+        transaction.memberId
+    ).label;
+
+    const categoryLabel = useCategoryLabelById(
+        transaction.workspaceId,
+        transaction.categoryId
+    ).label;
+
+    const accountLabel = useAccountLabelById(
+        transaction.workspaceId,
+        transaction.accountId
+    ).label;
+
+    const destinationAccountLabel = useAccountLabelById(
+        transaction.workspaceId,
+        transaction.destinationAccountId
+    ).label;
+
+    const cardLabel = useCardLabelById(
+        transaction.workspaceId,
+        transaction.cardId
+    ).label;
+
+    const sourceSummary = getSourceSummary({
+        transaction,
+        accountLabel,
+        destinationAccountLabel,
+        cardLabel,
+    });
+
     return (
         <Card
             variant="outlined"
@@ -104,7 +147,7 @@ export function TransactionCard({
                     </Typography>
 
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        <strong>Fuente:</strong> {getSourceSummary(transaction)}
+                        <strong>Fuente:</strong> {sourceSummary}
                     </Typography>
                 </Stack>
 
@@ -112,11 +155,11 @@ export function TransactionCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Miembro:</strong> {transaction.memberId}
+                        <strong>Miembro:</strong> {memberLabel}
                     </Typography>
 
                     <Typography variant="body2">
-                        <strong>Categoría:</strong> {transaction.categoryId ?? "—"}
+                        <strong>Categoría:</strong> {categoryLabel}
                     </Typography>
 
                     <Typography variant="body2">

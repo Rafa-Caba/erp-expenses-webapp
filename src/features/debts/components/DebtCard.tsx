@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { DebtRecord } from "../types/debt.types";
 import { DebtStatusChip } from "./DebtStatusChip";
 import { DebtTypeChip } from "./DebtTypeChip";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type DebtCardProps = {
     debt: DebtRecord;
@@ -58,6 +59,12 @@ export function DebtCard({
     onEdit,
     onDelete,
 }: DebtCardProps) {
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        debt.workspaceId,
+        debt.memberId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -111,7 +118,7 @@ export function DebtCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Miembro:</strong> {memberName ?? "Sin miembro específico"}
+                        <strong>Miembro:</strong> {memberLabel ?? "Sin miembro específico"}
                     </Typography>
 
                     <Typography variant="body2">

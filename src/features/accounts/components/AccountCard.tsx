@@ -11,10 +11,12 @@ import Typography from "@mui/material/Typography";
 
 import type { AccountRecord } from "../types/account.types";
 import { AccountTypeChip } from "./AccountTypeChip";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type AccountCardProps = {
     account: AccountRecord;
     isSelected: boolean;
+    workspaceId: string;
     onEdit: (account: AccountRecord) => void;
     onArchive: (account: AccountRecord) => void;
 };
@@ -34,9 +36,16 @@ function getVisibilityLabel(isVisible: boolean): string {
 export function AccountCard({
     account,
     isSelected,
+    workspaceId,
     onEdit,
     onArchive,
 }: AccountCardProps) {
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        workspaceId,
+        account.ownerMemberId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -95,7 +104,7 @@ export function AccountCard({
 
                     <Typography variant="body2">
                         <strong>Owner member:</strong>{" "}
-                        {account.ownerMemberId?.trim() ? account.ownerMemberId : "—"}
+                        {memberLabel.trim() ? memberLabel : "—"}
                     </Typography>
                 </Stack>
 

@@ -12,6 +12,9 @@ import Typography from "@mui/material/Typography";
 import type { PaymentRecord } from "../types/payment.types";
 import { PaymentMethodChip } from "./PaymentMethodChip";
 import { PaymentStatusChip } from "./PaymentStatusChip";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
+import { useDebtLabelById } from "../../../shared/utils/labels/debt-label.util";
+import { useTransactionLabelById } from "../../../shared/utils/labels/transaction-label.util";
 
 type PaymentCardProps = {
     payment: PaymentRecord;
@@ -58,6 +61,22 @@ export function PaymentCard({
     onEdit,
     onDelete,
 }: PaymentCardProps) {
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        payment.workspaceId,
+        payment.memberId
+    ).label;
+
+    const debtLabel = useDebtLabelById(
+        payment.workspaceId,
+        payment.debtId
+    ).label;
+
+    const transactionLabel = useTransactionLabelById(
+        payment.workspaceId,
+        payment.transactionId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -97,15 +116,15 @@ export function PaymentCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Debt ID:</strong> {payment.debtId}
+                        <strong>Debt ID:</strong> {debtLabel}
                     </Typography>
 
                     <Typography variant="body2">
-                        <strong>Member ID:</strong> {payment.memberId ?? "—"}
+                        <strong>Member ID:</strong> {memberLabel ?? "—"}
                     </Typography>
 
                     <Typography variant="body2">
-                        <strong>Transaction ID:</strong> {payment.transactionId ?? "—"}
+                        <strong>Transaction ID:</strong> {transactionLabel ?? "—"}
                     </Typography>
 
                     <Typography variant="body2">

@@ -32,6 +32,7 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import SavingsIcon from "@mui/icons-material/Savings";
@@ -169,10 +170,22 @@ export function AppShell() {
             showInBottom: false,
         },
         {
+            label: "Metas de ahorro",
+            to: `${scopeBase}/saving-goals`,
+            icon: <SavingsIcon />,
+            showInBottom: false,
+        },
+        {
             label: "Conciliación",
             to: `${scopeBase}/reconciliation`,
             icon: <FactCheckIcon />,
             showInBottom: true,
+        },
+        {
+            label: "Reminders",
+            to: `${scopeBase}/reminders`,
+            icon: <NotificationsActiveOutlinedIcon />,
+            showInBottom: false,
         },
         {
             label: "Ajustes",

@@ -3,9 +3,10 @@
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
-import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
+import { Page } from "../../../shared/ui/Page/Page";
 import { PaymentForm, type PaymentFormValues } from "../components/PaymentForm";
 import { useCreatePaymentMutation } from "../hooks/usePaymentMutations";
 import type { CreatePaymentPayload } from "../types/payment.types";
@@ -64,14 +65,6 @@ function toCreatePaymentPayload(values: PaymentFormValues): CreatePaymentPayload
     };
 }
 
-function getPaymentErrorMessage(error: Error | null, fallbackMessage: string): string {
-    if (!error) {
-        return fallbackMessage;
-    }
-
-    return error.message || fallbackMessage;
-}
-
 export function NewPaymentPage() {
     const navigate = useNavigate();
 
@@ -87,7 +80,10 @@ export function NewPaymentPage() {
     const paymentsBasePath = getPaymentsBasePath(scopeType, workspaceId);
 
     const submitErrorMessage = createPaymentMutation.isError
-        ? getPaymentErrorMessage(createPaymentMutation.error, "No se pudo crear el pago.")
+        ? getApiErrorMessage(
+            createPaymentMutation.error,
+            "No se pudo crear el pago."
+        )
         : null;
 
     const handleSubmit = React.useCallback(

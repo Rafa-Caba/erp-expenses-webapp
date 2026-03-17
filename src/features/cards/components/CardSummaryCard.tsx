@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 
 import type { CardRecord } from "../types/card.types";
 import { CardTypeChip } from "./CardTypeChip";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type CardSummaryCardProps = {
     card: CardRecord;
@@ -47,6 +48,12 @@ export function CardSummaryCard({
     onEdit,
     onArchive,
 }: CardSummaryCardProps) {
+
+    const memberLabel = useWorkspaceMemberLabelById(
+        card.workspaceId,
+        card.holderMemberId
+    ).label;
+
     return (
         <Card
             variant="outlined"
@@ -94,7 +101,7 @@ export function CardSummaryCard({
 
                     <Typography variant="body2">
                         <strong>Holder member:</strong>{" "}
-                        {card.holderMemberId?.trim() ? card.holderMemberId : "—"}
+                        {memberLabel.trim() ? memberLabel : "—"}
                     </Typography>
 
                     <Typography variant="body2">

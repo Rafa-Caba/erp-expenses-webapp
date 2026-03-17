@@ -10,9 +10,10 @@ import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
+import { Page } from "../../../shared/ui/Page/Page";
 import { PaymentCard } from "../components/PaymentCard";
 import { PaymentsEmptyState } from "../components/PaymentsEmptyState";
 import { PaymentsToolbar } from "../components/PaymentsToolbar";
@@ -35,14 +36,6 @@ function getPaymentsBasePath(scopeType: ScopeType, workspaceId: string | null): 
 
 function normalizeText(value: string): string {
     return value.trim().toLocaleLowerCase();
-}
-
-function getPaymentErrorMessage(error: Error | null, fallbackMessage: string): string {
-    if (!error) {
-        return fallbackMessage;
-    }
-
-    return error.message || fallbackMessage;
 }
 
 function getSearchableText(payment: PaymentRecord): string {
@@ -215,7 +208,7 @@ export function PaymentsPage() {
 
             {deletePaymentMutation.isError ? (
                 <Alert severity="error">
-                    {getPaymentErrorMessage(
+                    {getApiErrorMessage(
                         deletePaymentMutation.error,
                         "No se pudo eliminar el pago."
                     )}
@@ -246,7 +239,7 @@ export function PaymentsPage() {
 
             {!paymentsQuery.isLoading && paymentsQuery.isError ? (
                 <Alert severity="error">
-                    {getPaymentErrorMessage(
+                    {getApiErrorMessage(
                         paymentsQuery.error,
                         "No se pudieron cargar los pagos."
                     )}

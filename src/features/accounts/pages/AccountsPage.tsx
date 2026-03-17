@@ -266,6 +266,7 @@ export function AccountsPage() {
                     {filteredAccounts.map((account: AccountRecord) => (
                         <Grid key={account.id} size={{ xs: 12, md: 6, xl: 4 }}>
                             <AccountCard
+                                workspaceId={workspaceId}
                                 account={account}
                                 isSelected={selectedAccountId === account.id}
                                 onEdit={handleEditAccount}

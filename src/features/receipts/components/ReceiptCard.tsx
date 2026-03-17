@@ -13,6 +13,8 @@ import Box from "@mui/material/Box";
 
 import type { ReceiptRecord, ReceiptFileType } from "../types/receipt.types";
 import { ReceiptFileTypeChip } from "./ReceiptFileTypeChip";
+import { useTransactionLabelById } from "../../../shared/utils/labels/transaction-label.util";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type ReceiptCardProps = {
     receipt: ReceiptRecord;
@@ -67,6 +69,15 @@ export function ReceiptCard({
     onEdit,
     onDelete,
 }: ReceiptCardProps) {
+    const memberLabel = useWorkspaceMemberLabelById(
+        receipt.workspaceId,
+        receipt.uploadedByMemberId
+    ).label;
+
+    const transactionLabel = useTransactionLabelById(
+        receipt.workspaceId,
+        receipt.transactionId
+    ).label;
     return (
         <Card
             variant="outlined"
@@ -140,11 +151,11 @@ export function ReceiptCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Transaction ID:</strong> {receipt.transactionId}
+                        <strong>Transaction ID:</strong> {transactionLabel}
                     </Typography>
 
                     <Typography variant="body2">
-                        <strong>Subido por:</strong> {receipt.uploadedByMemberId}
+                        <strong>Subido por:</strong> {memberLabel}
                     </Typography>
 
                     <Typography variant="body2">
