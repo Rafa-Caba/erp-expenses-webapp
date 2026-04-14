@@ -1,4 +1,4 @@
-// src/workspaceSettings/services/workspace-settings.service.ts
+// src/features/workspaceSettings/services/workspace-settings.service.ts
 
 import type { AxiosInstance } from "axios";
 
@@ -9,13 +9,13 @@ import type {
 
 export function createWorkspaceSettingsService(apiClient: AxiosInstance) {
     return {
-        getSettings(workspaceId: string): Promise<WorkspaceSettingsResponse> {
+        getWorkspaceSettings(workspaceId: string): Promise<WorkspaceSettingsResponse> {
             return apiClient
                 .get<WorkspaceSettingsResponse>(`/api/workspaces/${workspaceId}/settings`)
                 .then(({ data }) => data);
         },
 
-        updateSettings(
+        updateWorkspaceSettings(
             workspaceId: string,
             payload: UpdateWorkspaceSettingsPayload
         ): Promise<WorkspaceSettingsResponse> {

@@ -53,7 +53,6 @@ function formatDateValue(value: string | null): string {
 
 export function DebtCard({
     debt,
-    memberName,
     accountName,
     isSelected,
     onEdit,

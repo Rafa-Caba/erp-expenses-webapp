@@ -1,4 +1,4 @@
-// src/workspaceSettings/types/workspace-settings.types.ts
+// src/features/workspaceSettings/types/workspace-settings.types.ts
 
 import type {
     CurrencyCode,
@@ -52,4 +52,7 @@ export interface UpdateWorkspaceSettingsPayload {
     isVisible?: boolean;
 }
 
-export type WorkspaceSettingsResponse = EntityResponse<"settings", WorkspaceSettingsRecord>;
+export type WorkspaceSettingsResponse = EntityResponse<
+    "settings",
+    WorkspaceSettingsRecord
+>;

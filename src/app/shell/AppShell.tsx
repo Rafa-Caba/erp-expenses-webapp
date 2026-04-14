@@ -47,13 +47,15 @@ import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
-import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
+import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
 import { useScopeStore } from "../scope/scope.store";
 import { ScopeSwitcher } from "./ScopeSwitcher";
 
 const drawerWidth = 280;
 const accountDrawerWidth = 300;
+const mobileBottomNavigationHeight = 72;
+const mobileBottomContentSpacing = 28;
 
 type NavItem = {
     label: string;
@@ -62,7 +64,9 @@ type NavItem = {
     showInBottom: boolean;
 };
 
-function getWorkspaceTypeLabel(workspaceType: "PERSONAL" | "HOUSEHOLD" | "BUSINESS"): string {
+function getWorkspaceTypeLabel(
+    workspaceType: "PERSONAL" | "HOUSEHOLD" | "BUSINESS"
+): string {
     switch (workspaceType) {
         case "PERSONAL":
             return "Personal";
@@ -89,12 +93,15 @@ export function AppShell() {
     const workspaces: WorkspaceListItem[] = data?.workspaces ?? [];
 
     const personalWorkspace: WorkspaceListItem | null =
-        workspaces.find((workspace: WorkspaceListItem) => workspace.type === "PERSONAL") ?? null;
+        workspaces.find((workspace: WorkspaceListItem) => workspace.type === "PERSONAL") ??
+        null;
 
     const activeWorkspace: WorkspaceListItem | null =
         scopeType === "PERSONAL"
             ? personalWorkspace
-            : workspaces.find((workspace: WorkspaceListItem) => workspace.id === workspaceId) ?? null;
+            : workspaces.find(
+                (workspace: WorkspaceListItem) => workspace.id === workspaceId
+            ) ?? null;
 
     const scopeBase =
         scopeType === "PERSONAL"
@@ -214,8 +221,10 @@ export function AppShell() {
     const allItems = [...scopedNavItems, ...globalNavItems];
 
     const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
-    const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] = React.useState(false);
-    const [accountMenuAnchorEl, setAccountMenuAnchorEl] = React.useState<HTMLElement | null>(null);
+    const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] =
+        React.useState(false);
+    const [accountMenuAnchorEl, setAccountMenuAnchorEl] =
+        React.useState<HTMLElement | null>(null);
 
     const accountMenuOpen = Boolean(accountMenuAnchorEl);
 
@@ -248,15 +257,13 @@ export function AppShell() {
 
     const currentBottomValue = React.useMemo(() => {
         const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
-        const hitIndex = bottomItems.findIndex((item) => location.pathname.startsWith(item.to));
+        const hitIndex = bottomItems.findIndex((item) =>
+            location.pathname.startsWith(item.to)
+        );
 
         return hitIndex === -1 ? 0 : hitIndex;
     }, [location.pathname, scopedNavItems]);
 
-    /**
-     * Temporary scaffold until the authenticated user role source is wired into AppShell.
-     * Replace this with your real role selector once you pass the auth user source.
-     */
     const canAccessAdminUsers = true;
 
     const handleOpenAccountMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -339,7 +346,13 @@ export function AppShell() {
 
     const mobileAccountDrawerContent = (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Toolbar
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                }}
+            >
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     Cuenta
                 </Typography>
@@ -365,7 +378,10 @@ export function AppShell() {
                     <ListItemIcon>
                         <PersonOutlineIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Perfil" secondary="Ver y editar tu información" />
+                    <ListItemText
+                        primary="Perfil"
+                        secondary="Ver y editar tu información"
+                    />
                 </ListItemButton>
 
                 <ListItemButton disabled>
@@ -394,7 +410,9 @@ export function AppShell() {
                         sx={{
                             borderRadius: 2,
                             border: "1px solid",
-                            borderColor: isAdminUsersRoute ? "primary.main" : "divider",
+                            borderColor: isAdminUsersRoute
+                                ? "primary.main"
+                                : "divider",
                         }}
                     >
                         <ListItemIcon>
@@ -411,23 +429,42 @@ export function AppShell() {
             <Divider sx={{ mt: "auto" }} />
 
             <List sx={{ pt: 0 }}>
-                <ListItemButton onClick={handleLogout} disabled={logoutMutation.isPending}>
+                <ListItemButton
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                >
                     <ListItemIcon>
                         <LogoutRoundedIcon />
                     </ListItemIcon>
                     <ListItemText
-                        primary={logoutMutation.isPending ? "Cerrando sesión..." : "Cerrar sesión"}
+                        primary={
+                            logoutMutation.isPending
+                                ? "Cerrando sesión..."
+                                : "Cerrar sesión"
+                        }
                     />
                 </ListItemButton>
             </List>
         </Box>
     );
 
+    const mobileContentPaddingBottom = showBottomNavigation
+        ? `calc(${mobileBottomNavigationHeight}px + env(safe-area-inset-bottom, 0px) + ${mobileBottomContentSpacing}px)`
+        : "24px";
+
     return (
-        <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
+        <Box
+            sx={{
+                display: "flex",
+                height: "100dvh",
+                maxHeight: "100dvh",
+                bgcolor: "background.default",
+                overflow: "hidden",
+            }}
+        >
             <AppBar position="fixed" sx={{ zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1 }}>
                 <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
                         {isMobile && (
                             <IconButton
                                 color="inherit"
@@ -438,12 +475,21 @@ export function AppShell() {
                             </IconButton>
                         )}
 
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                fontWeight: 700,
+                                minWidth: 0,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
                             {headerTitle}
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
                         {!isMobile ? (
                             <>
                                 <ScopeSwitcher />
@@ -501,7 +547,10 @@ export function AppShell() {
 
                                     <Divider />
 
-                                    <MenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
+                                    <MenuItem
+                                        onClick={handleLogout}
+                                        disabled={logoutMutation.isPending}
+                                    >
                                         <ListItemIcon>
                                             <LogoutRoundedIcon fontSize="small" />
                                         </ListItemIcon>
@@ -584,11 +633,46 @@ export function AppShell() {
                 </Drawer>
             )}
 
-            <Box component="main" sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Box
+                component="main"
+                sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                }}
+            >
                 <Toolbar />
 
-                <Box sx={{ flex: 1, p: { xs: 2, md: 3 }, pb: isMobile ? 10 : 3 }}>
+                <Box
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        WebkitOverflowScrolling: "touch",
+                        p: { xs: 2, md: 3 },
+                        pb: isMobile ? mobileContentPaddingBottom : 3,
+                        scrollPaddingBottom: isMobile
+                            ? mobileContentPaddingBottom
+                            : 24,
+                        boxSizing: "border-box",
+                    }}
+                >
                     <Outlet />
+
+                    {isMobile && showBottomNavigation ? (
+                        <Box
+                            aria-hidden
+                            sx={{
+                                height: `calc(${mobileBottomNavigationHeight}px + env(safe-area-inset-bottom, 0px) + ${mobileBottomContentSpacing}px)`,
+                                flexShrink: 0,
+                            }}
+                        />
+                    ) : null}
                 </Box>
 
                 {isMobile && showBottomNavigation && (
@@ -598,8 +682,11 @@ export function AppShell() {
                             bottom: 0,
                             left: 0,
                             right: 0,
+                            zIndex: theme.zIndex.appBar,
                             borderTop: "1px solid",
                             borderColor: "divider",
+                            bgcolor: "background.paper",
+                            pb: "env(safe-area-inset-bottom, 0px)",
                         }}
                     >
                         <BottomNavigation
@@ -612,6 +699,10 @@ export function AppShell() {
                                 const targetItem = bottomItems[nextValue] ?? bottomItems[0];
 
                                 navigate(targetItem.to);
+                            }}
+                            sx={{
+                                height: mobileBottomNavigationHeight,
+                                marginX: 25
                             }}
                         >
                             {scopedNavItems
