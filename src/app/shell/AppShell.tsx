@@ -45,6 +45,8 @@ import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
@@ -52,7 +54,8 @@ import type { WorkspaceListItem } from "../../features/workspaces/types/workspac
 import { useScopeStore } from "../scope/scope.store";
 import { ScopeSwitcher } from "./ScopeSwitcher";
 
-const drawerWidth = 280;
+const drawerWidthExpanded = 280;
+const drawerWidthCollapsed = 88;
 const accountDrawerWidth = 300;
 const mobileBottomNavigationHeight = 72;
 const mobileBottomContentSpacing = 28;
@@ -225,8 +228,13 @@ export function AppShell() {
         React.useState(false);
     const [accountMenuAnchorEl, setAccountMenuAnchorEl] =
         React.useState<HTMLElement | null>(null);
+    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
+        React.useState(false);
 
     const accountMenuOpen = Boolean(accountMenuAnchorEl);
+    const currentDrawerWidth = isDesktopSidebarCollapsed
+        ? drawerWidthCollapsed
+        : drawerWidthExpanded;
 
     const contextLabel =
         activeWorkspace === null
@@ -300,46 +308,122 @@ export function AppShell() {
         logoutMutation.mutate();
     };
 
+    const renderNavItem = (item: NavItem) => {
+        const isCollapsed = !isMobile && isDesktopSidebarCollapsed;
+
+        const navButton = (
+            <ListItemButton
+                key={item.label}
+                component={NavLink}
+                to={item.to}
+                onClick={() => setMobileDrawerOpen(false)}
+                sx={{
+                    minHeight: 48,
+                    px: isCollapsed ? 1.5 : 2,
+                    justifyContent: isCollapsed ? "center" : "initial",
+                    borderRadius: 2,
+                    mx: 1,
+                }}
+            >
+                <ListItemIcon
+                    sx={{
+                        minWidth: 0,
+                        mr: isCollapsed ? 0 : 2,
+                        justifyContent: "center",
+                    }}
+                >
+                    {item.icon}
+                </ListItemIcon>
+
+                {!isCollapsed ? <ListItemText primary={item.label} /> : null}
+            </ListItemButton>
+        );
+
+        if (isCollapsed) {
+            return (
+                <Tooltip key={item.label} title={item.label} placement="right">
+                    {navButton}
+                </Tooltip>
+            );
+        }
+
+        return navButton;
+    };
+
     const drawerContent = (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Toolbar sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Expenses App
-                </Typography>
+            <Toolbar
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
+                    gap: 1,
+                    px: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
+                }}
+            >
+                {!isDesktopSidebarCollapsed || isMobile ? (
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Expenses App
+                    </Typography>
+                ) : (
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        ERP
+                    </Typography>
+                )}
             </Toolbar>
 
             <Divider />
 
-            <Box sx={{ px: 2, py: 1 }}>
+            <Box
+                sx={{
+                    px: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
+                    py: 1,
+                    display: "flex",
+                    justifyContent: isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
+                }}
+            >
                 <Badge color="primary" variant="standard">
-                    <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                        Contexto: {contextLabel}
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            opacity: 0.85,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    >
+                        {isDesktopSidebarCollapsed && !isMobile
+                            ? "Personal"
+                            : `Contexto: ${contextLabel}`}
                     </Typography>
                 </Badge>
             </Box>
 
             <Divider />
 
-            <List sx={{ flex: 1 }}>
-                {allItems.map((item) => (
-                    <ListItemButton
-                        key={item.label}
-                        component={NavLink}
-                        to={item.to}
-                        onClick={() => setMobileDrawerOpen(false)}
-                    >
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.label} />
-                    </ListItemButton>
-                ))}
+            <List sx={{ flex: 1, pt: 1 }}>
+                {allItems.map((item) => renderNavItem(item))}
             </List>
 
             <Divider />
 
-            <Box sx={{ p: 2 }}>
-                <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                    ERP de gastos • Ledger • Conciliación
-                </Typography>
+            <Box
+                sx={{
+                    p: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
+                    textAlign: isDesktopSidebarCollapsed && !isMobile ? "center" : "left",
+                }}
+            >
+                {!isDesktopSidebarCollapsed || isMobile ? (
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                        ERP de gastos • Ledger • Conciliación
+                    </Typography>
+                ) : (
+                    <Tooltip title="ERP de gastos • Ledger • Conciliación" placement="right">
+                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                            ERP
+                        </Typography>
+                    </Tooltip>
+                )}
             </Box>
         </Box>
     );
@@ -465,7 +549,7 @@ export function AppShell() {
             <AppBar position="fixed" sx={{ zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1 }}>
                 <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-                        {isMobile && (
+                        {isMobile ? (
                             <IconButton
                                 color="inherit"
                                 edge="start"
@@ -473,6 +557,28 @@ export function AppShell() {
                             >
                                 <MenuIcon />
                             </IconButton>
+                        ) : (
+                            <Tooltip
+                                title={
+                                    isDesktopSidebarCollapsed
+                                        ? "Expandir menú"
+                                        : "Colapsar menú"
+                                }
+                            >
+                                <IconButton
+                                    color="inherit"
+                                    edge="start"
+                                    onClick={() =>
+                                        setIsDesktopSidebarCollapsed((currentValue) => !currentValue)
+                                    }
+                                >
+                                    {isDesktopSidebarCollapsed ? (
+                                        <KeyboardDoubleArrowRightIcon />
+                                    ) : (
+                                        <KeyboardDoubleArrowLeftIcon />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
                         )}
 
                         <Typography
@@ -587,11 +693,20 @@ export function AppShell() {
                 <Drawer
                     variant="permanent"
                     sx={{
-                        width: drawerWidth,
+                        width: currentDrawerWidth,
                         flexShrink: 0,
+                        transition: theme.transitions.create("width", {
+                            easing: theme.transitions.easing.sharp,
+                            duration: theme.transitions.duration.standard,
+                        }),
                         "& .MuiDrawer-paper": {
-                            width: drawerWidth,
+                            width: currentDrawerWidth,
                             boxSizing: "border-box",
+                            overflowX: "hidden",
+                            transition: theme.transitions.create("width", {
+                                easing: theme.transitions.easing.sharp,
+                                duration: theme.transitions.duration.standard,
+                            }),
                         },
                     }}
                 >
@@ -607,7 +722,7 @@ export function AppShell() {
                     ModalProps={{ keepMounted: true }}
                     sx={{
                         "& .MuiDrawer-paper": {
-                            width: drawerWidth,
+                            width: drawerWidthExpanded,
                         },
                     }}
                 >
