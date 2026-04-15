@@ -17,6 +17,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { AppDateField } from "../../components/AppDateField";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
 import type {
     ReminderChannel,
@@ -215,6 +216,13 @@ export function ReminderForm({
         }));
     };
 
+    const handleDueDateChange = (value: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            dueDate: value,
+        }));
+    };
+
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -286,15 +294,13 @@ export function ReminderForm({
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 3 }}>
-                                <TextField
+                                <AppDateField
                                     label="Fecha límite"
-                                    type="date"
                                     value={values.dueDate}
-                                    onChange={handleTextChange("dueDate")}
+                                    onChange={handleDueDateChange}
                                     error={Boolean(errors.dueDate)}
                                     helperText={errors.dueDate}
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
+                                    disabled={isSubmitting}
                                 />
                             </Grid>
 

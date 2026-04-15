@@ -49,6 +49,7 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
+import { ReminderBellMenu } from "../../features/reminders/components/ReminderBellMenu";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
 import { useScopeStore } from "../scope/scope.store";
@@ -78,6 +79,21 @@ function getWorkspaceTypeLabel(
         case "BUSINESS":
             return "Negocio";
     }
+}
+
+function getRemindersBasePath(
+    scopeType: "PERSONAL" | "WORKSPACE",
+    workspaceId: string | null
+): string {
+    if (scopeType === "PERSONAL") {
+        return "/app/personal/reminders";
+    }
+
+    if (!workspaceId) {
+        return "/app/workspaces";
+    }
+
+    return `/app/w/${workspaceId}/reminders`;
 }
 
 export function AppShell() {
@@ -273,6 +289,7 @@ export function AppShell() {
     }, [location.pathname, scopedNavItems]);
 
     const canAccessAdminUsers = true;
+    const remindersBasePath = getRemindersBasePath(scopeType, workspaceId);
 
     const handleOpenAccountMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAccountMenuAnchorEl(event.currentTarget);
@@ -598,6 +615,11 @@ export function AppShell() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
                         {!isMobile ? (
                             <>
+                                <ReminderBellMenu
+                                    workspaceId={workspaceId}
+                                    remindersPath={remindersBasePath}
+                                />
+
                                 <ScopeSwitcher />
 
                                 {canAccessAdminUsers ? (
@@ -667,23 +689,30 @@ export function AppShell() {
                                 </Menu>
                             </>
                         ) : (
-                            <Tooltip title="Cuenta">
-                                <IconButton color="inherit" onClick={handleOpenMobileAccountDrawer}>
-                                    <Avatar
-                                        variant="rounded"
-                                        sx={{
-                                            width: 38,
-                                            height: 38,
-                                            bgcolor: "transparent",
-                                            border: "1px solid",
-                                            borderColor: "currentColor",
-                                            color: "inherit",
-                                        }}
-                                    >
-                                        <PersonOutlineIcon fontSize="small" />
-                                    </Avatar>
-                                </IconButton>
-                            </Tooltip>
+                            <>
+                                <ReminderBellMenu
+                                    workspaceId={workspaceId}
+                                    remindersPath={remindersBasePath}
+                                />
+
+                                <Tooltip title="Cuenta">
+                                    <IconButton color="inherit" onClick={handleOpenMobileAccountDrawer}>
+                                        <Avatar
+                                            variant="rounded"
+                                            sx={{
+                                                width: 38,
+                                                height: 38,
+                                                bgcolor: "transparent",
+                                                border: "1px solid",
+                                                borderColor: "currentColor",
+                                                color: "inherit",
+                                            }}
+                                        >
+                                            <PersonOutlineIcon fontSize="small" />
+                                        </Avatar>
+                                    </IconButton>
+                                </Tooltip>
+                            </>
                         )}
                     </Box>
                 </Toolbar>
@@ -817,7 +846,6 @@ export function AppShell() {
                             }}
                             sx={{
                                 height: mobileBottomNavigationHeight,
-                                marginX: 25
                             }}
                         >
                             {scopedNavItems

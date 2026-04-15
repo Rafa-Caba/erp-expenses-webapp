@@ -8,7 +8,15 @@ import { createReminderService } from "../services/reminder.service";
 
 const reminderService = createReminderService(apiClient);
 
-export function useRemindersQuery(workspaceId: string | null) {
+type UseRemindersQueryOptions = {
+    staleTime?: number;
+    refetchInterval?: number;
+};
+
+export function useRemindersQuery(
+    workspaceId: string | null,
+    options?: UseRemindersQueryOptions
+) {
     return useQuery({
         queryKey: workspaceId
             ? reminderQueryKeys.list(workspaceId)
@@ -21,6 +29,7 @@ export function useRemindersQuery(workspaceId: string | null) {
             return reminderService.getReminders(workspaceId);
         },
         enabled: workspaceId !== null,
-        staleTime: 30_000,
+        staleTime: options?.staleTime ?? 30_000,
+        refetchInterval: options?.refetchInterval,
     });
 }
