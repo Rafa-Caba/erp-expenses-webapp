@@ -106,6 +106,7 @@ export function AppShell() {
 
     const scopeType = useScopeStore((state) => state.scopeType);
     const workspaceId = useScopeStore((state) => state.workspaceId);
+    const workspaceType = useScopeStore((state) => state.workspaceType);
 
     const { data } = useMyWorkspacesQuery();
 
@@ -256,10 +257,31 @@ export function AppShell() {
         activeWorkspace === null
             ? scopeType === "PERSONAL"
                 ? "Personal"
-                : "Workspace"
+                : workspaceType === "HOUSEHOLD"
+                    ? "Casa"
+                    : workspaceType === "BUSINESS"
+                        ? "Negocio"
+                        : "Workspace"
             : activeWorkspace.type === "PERSONAL"
                 ? "Personal"
                 : `${getWorkspaceTypeLabel(activeWorkspace.type)}: ${activeWorkspace.name}`;
+
+    const compactContextLabel =
+        activeWorkspace === null
+            ? scopeType === "PERSONAL"
+                ? "PERSONAL"
+                : workspaceType === "HOUSEHOLD"
+                    ? "CASA"
+                    : workspaceType === "BUSINESS"
+                        ? "NEGOCIO"
+                        : "WORKSPACE"
+            : activeWorkspace.type === "PERSONAL"
+                ? "PERSONAL"
+                : activeWorkspace.type === "HOUSEHOLD"
+                    ? "CASA"
+                    : activeWorkspace.type === "BUSINESS"
+                        ? "NEGOCIO"
+                        : "WORKSPACE";
 
     const headerTitle =
         scopeType === "PERSONAL"
@@ -409,8 +431,8 @@ export function AppShell() {
                             textOverflow: "ellipsis",
                         }}
                     >
-                        {isDesktopSidebarCollapsed && !isMobile
-                            ? "Personal"
+                        {isDesktopSidebarCollapsed || isMobile
+                            ? compactContextLabel
                             : `Contexto: ${contextLabel}`}
                     </Typography>
                 </Badge>

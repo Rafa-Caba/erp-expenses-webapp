@@ -33,6 +33,19 @@ function getWeekStartsOnLabel(value: WorkspaceSettingsRecord["weekStartsOn"]): s
     }
 }
 
+function getThemeLabel(value: WorkspaceSettingsRecord["theme"]): string {
+    switch (value) {
+        case "dark":
+            return "Dark";
+        case "light":
+            return "Light";
+        case "customizable":
+            return "Personalizable";
+        default:
+            return "Sin tema";
+    }
+}
+
 function formatDateTime(value: string): string {
     const date = new Date(value);
 
@@ -112,7 +125,7 @@ export function WorkspaceSettingsSummaryCard({
                         label="Separador de miles"
                         value={settings.thousandSeparator ?? "No definido"}
                     />
-                    <SummaryItem label="Tema" value={settings.theme ?? "Sin tema"} />
+                    <SummaryItem label="Tema" value={getThemeLabel(settings.theme)} />
                 </Stack>
 
                 <Divider />

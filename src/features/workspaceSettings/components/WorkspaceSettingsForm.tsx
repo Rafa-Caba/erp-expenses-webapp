@@ -4,16 +4,25 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 
+import { AdvancedColorPickerField } from "../../components/AdvancedColorPickerField";
+import type { ThemeColors, ThemeKey, ThemeRecord } from "../../themes/types/theme.types";
 import type {
     UpdateWorkspaceSettingsPayload,
     WorkspaceDateFormat,
@@ -31,7 +40,7 @@ type WorkspaceSettingsFormValues = {
     timezone: string;
     dateFormat: WorkspaceDateFormat;
     timeFormat: WorkspaceTimeFormat;
-    theme: string;
+    theme: ThemeKey;
     notificationsEnabled: boolean;
     budgetAlertsEnabled: boolean;
     debtAlertsEnabled: boolean;
@@ -42,12 +51,30 @@ type WorkspaceSettingsFormValues = {
     isVisible: boolean;
 };
 
+type CustomThemeEditorValues = {
+    name: string;
+    description: string;
+    colors: ThemeColors;
+};
+
 type WorkspaceSettingsFormProps = {
+    workspaceId: string;
     initialValues: WorkspaceSettingsRecord;
+    availableThemes: ThemeRecord[];
     isSubmitting: boolean;
+    isUpdatingCustomTheme: boolean;
     submitErrorMessage: string | null;
     submitSuccessMessage: string | null;
+    themeErrorMessage: string | null;
+    themeSuccessMessage: string | null;
     onSubmit: (values: UpdateWorkspaceSettingsPayload) => void;
+    onUpdateCustomTheme: (
+        payload: {
+            name: string;
+            description: string | null;
+            colors: ThemeColors;
+        }
+    ) => void;
 };
 
 const WEEK_OPTIONS: Array<{
@@ -70,7 +97,7 @@ function toFormValues(settings: WorkspaceSettingsRecord): WorkspaceSettingsFormV
         timezone: settings.timezone,
         dateFormat: settings.dateFormat,
         timeFormat: settings.timeFormat,
-        theme: settings.theme ?? "",
+        theme: settings.theme ?? "dark",
         notificationsEnabled: settings.notificationsEnabled,
         budgetAlertsEnabled: settings.budgetAlertsEnabled,
         debtAlertsEnabled: settings.debtAlertsEnabled,
@@ -82,26 +109,155 @@ function toFormValues(settings: WorkspaceSettingsRecord): WorkspaceSettingsFormV
     };
 }
 
+function getCustomizableTheme(
+    themes: ThemeRecord[]
+): ThemeRecord | null {
+    return themes.find((theme) => theme.key === "customizable") ?? null;
+}
+
+function toCustomThemeEditorValues(theme: ThemeRecord | null): CustomThemeEditorValues | null {
+    if (!theme) {
+        return null;
+    }
+
+    return {
+        name: theme.name,
+        description: theme.description ?? "",
+        colors: {
+            background: theme.colors.background,
+            surface: theme.colors.surface,
+            surfaceAlt: theme.colors.surfaceAlt,
+            textPrimary: theme.colors.textPrimary,
+            textSecondary: theme.colors.textSecondary,
+            primary: theme.colors.primary,
+            secondary: theme.colors.secondary,
+            success: theme.colors.success,
+            warning: theme.colors.warning,
+            error: theme.colors.error,
+            info: theme.colors.info,
+            divider: theme.colors.divider,
+        },
+    };
+}
+
+type ThemePreviewCardProps = {
+    theme: ThemeRecord;
+    selected: boolean;
+    onSelect: (themeKey: ThemeKey) => void;
+    onEditCustomTheme: () => void;
+};
+
+function ThemePreviewCard({
+    theme,
+    selected,
+    onSelect,
+    onEditCustomTheme,
+}: ThemePreviewCardProps) {
+    return (
+        <Paper
+            variant="outlined"
+            sx={{
+                p: 2,
+                borderRadius: 3,
+                borderColor: selected ? "primary.main" : "divider",
+                boxShadow: selected ? 3 : 0,
+            }}
+        >
+            <Stack spacing={1.5}>
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                >
+                    <Box>
+                        <Typography sx={{ fontWeight: 800 }}>{theme.name}</Typography>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                            {theme.description ?? "Sin descripción"}
+                        </Typography>
+                    </Box>
+
+                    {theme.key === "customizable" ? (
+                        <IconButton
+                            color="primary"
+                            onClick={onEditCustomTheme}
+                            aria-label="Editar tema personalizable"
+                        >
+                            <EditRoundedIcon />
+                        </IconButton>
+                    ) : null}
+                </Stack>
+
+                <Stack direction="row" spacing={1}>
+                    {Object.values(theme.colors)
+                        .slice(0, 6)
+                        .map((colorValue, index) => (
+                            <Box
+                                key={`${theme.key}-${index}`}
+                                sx={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: "50%",
+                                    bgcolor: colorValue,
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                }}
+                            />
+                        ))}
+                </Stack>
+
+                <Button
+                    variant={selected ? "contained" : "outlined"}
+                    onClick={() => onSelect(theme.key)}
+                    startIcon={<PaletteRoundedIcon />}
+                >
+                    {selected ? "Tema activo" : "Usar este tema"}
+                </Button>
+            </Stack>
+        </Paper>
+    );
+}
+
 export function WorkspaceSettingsForm({
+    workspaceId,
     initialValues,
+    availableThemes,
     isSubmitting,
+    isUpdatingCustomTheme,
     submitErrorMessage,
     submitSuccessMessage,
+    themeErrorMessage,
+    themeSuccessMessage,
     onSubmit,
+    onUpdateCustomTheme,
 }: WorkspaceSettingsFormProps) {
     const [values, setValues] = React.useState<WorkspaceSettingsFormValues>(
         toFormValues(initialValues)
     );
     const [timezoneError, setTimezoneError] = React.useState<string | null>(null);
+    const [customThemeDialogOpen, setCustomThemeDialogOpen] = React.useState(false);
+
+    const customizableTheme = React.useMemo(() => {
+        return getCustomizableTheme(availableThemes);
+    }, [availableThemes]);
+
+    const [customThemeValues, setCustomThemeValues] =
+        React.useState<CustomThemeEditorValues | null>(
+            toCustomThemeEditorValues(customizableTheme)
+        );
 
     React.useEffect(() => {
         setValues(toFormValues(initialValues));
         setTimezoneError(null);
     }, [initialValues]);
 
+    React.useEffect(() => {
+        setCustomThemeValues(toCustomThemeEditorValues(customizableTheme));
+    }, [customizableTheme]);
+
     const handleTextChange = React.useCallback(
         (
-            field: "timezone" | "theme",
+            field: "timezone",
             event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
         ) => {
             const nextValue = event.target.value;
@@ -127,7 +283,8 @@ export function WorkspaceSettingsForm({
             | "timeFormat"
             | "weekStartsOn"
             | "decimalSeparator"
-            | "thousandSeparator",
+            | "thousandSeparator"
+            | "theme",
         >(
             field: TField,
             value: WorkspaceSettingsFormValues[TField]
@@ -163,6 +320,68 @@ export function WorkspaceSettingsForm({
         setTimezoneError(null);
     }, [initialValues]);
 
+    const handleOpenCustomThemeDialog = React.useCallback(() => {
+        setCustomThemeValues(toCustomThemeEditorValues(customizableTheme));
+        setCustomThemeDialogOpen(true);
+    }, [customizableTheme]);
+
+    const handleCloseCustomThemeDialog = React.useCallback(() => {
+        setCustomThemeDialogOpen(false);
+    }, []);
+
+    const handleCustomThemeTextChange = React.useCallback(
+        (
+            field: "name" | "description",
+            nextValue: string
+        ) => {
+            setCustomThemeValues((currentValues) => {
+                if (!currentValues) {
+                    return currentValues;
+                }
+
+                return {
+                    ...currentValues,
+                    [field]: nextValue,
+                };
+            });
+        },
+        []
+    );
+
+    const handleCustomThemeColorChange = React.useCallback(
+        (field: keyof ThemeColors, nextValue: string) => {
+            setCustomThemeValues((currentValues) => {
+                if (!currentValues) {
+                    return currentValues;
+                }
+
+                return {
+                    ...currentValues,
+                    colors: {
+                        ...currentValues.colors,
+                        [field]: nextValue,
+                    },
+                };
+            });
+        },
+        []
+    );
+
+    const handleSubmitCustomTheme = React.useCallback(() => {
+        if (!customThemeValues) {
+            return;
+        }
+
+        onUpdateCustomTheme({
+            name: customThemeValues.name.trim(),
+            description:
+                customThemeValues.description.trim().length > 0
+                    ? customThemeValues.description.trim()
+                    : null,
+            colors: customThemeValues.colors,
+        });
+    }, [customThemeValues, onUpdateCustomTheme]);
+
     const handleSubmit = React.useCallback(
         (event: React.FormEvent<HTMLFormElement>) => {
             event.preventDefault();
@@ -182,7 +401,7 @@ export function WorkspaceSettingsForm({
                 timezone: trimmedTimezone,
                 dateFormat: values.dateFormat,
                 timeFormat: values.timeFormat,
-                theme: values.theme.trim(),
+                theme: values.theme,
                 notificationsEnabled: values.notificationsEnabled,
                 budgetAlertsEnabled: values.budgetAlertsEnabled,
                 debtAlertsEnabled: values.debtAlertsEnabled,
@@ -197,308 +416,532 @@ export function WorkspaceSettingsForm({
     );
 
     return (
-        <Paper
-            variant="outlined"
-            sx={{
-                p: 3,
-                borderRadius: 3,
-            }}
-        >
-            <Stack
-                component="form"
-                spacing={2.5}
-                onSubmit={handleSubmit}
+        <>
+            <Paper
+                variant="outlined"
+                sx={{
+                    p: 3,
+                    borderRadius: 3,
+                }}
             >
-                <Stack spacing={0.75}>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        Configuración del workspace
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        Ajusta idioma, formato, alertas y comportamiento general del
-                        workspace activo.
-                    </Typography>
+                <Stack component="form" spacing={2.5} onSubmit={handleSubmit}>
+                    <Stack spacing={0.75}>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                            Configuración del workspace
+                        </Typography>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                            Ajusta idioma, formato, alertas, comportamiento general y temas del
+                            workspace activo.
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.65 }}>
+                            Workspace ID: {workspaceId}
+                        </Typography>
+                    </Stack>
+
+                    {submitErrorMessage ? (
+                        <Alert severity="error">{submitErrorMessage}</Alert>
+                    ) : null}
+
+                    {submitSuccessMessage ? (
+                        <Alert severity="success">{submitSuccessMessage}</Alert>
+                    ) : null}
+
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Moneda por defecto"
+                                value={values.defaultCurrency}
+                                onChange={(event) =>
+                                    handleSelectChange("defaultCurrency", event.target.value as WorkspaceSettingsRecord["defaultCurrency"])
+                                }
+                            >
+                                <MenuItem value="MXN">MXN</MenuItem>
+                                <MenuItem value="USD">USD</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Idioma"
+                                value={values.language}
+                                onChange={(event) =>
+                                    handleSelectChange("language", event.target.value as WorkspaceLanguage)
+                                }
+                            >
+                                <MenuItem value="es-MX">Español (México)</MenuItem>
+                                <MenuItem value="en-US">English (US)</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Zona horaria"
+                                value={values.timezone}
+                                onChange={(event) => handleTextChange("timezone", event)}
+                                error={timezoneError !== null}
+                                helperText={timezoneError ?? "Ejemplo: America/Mexico_City"}
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Formato de fecha"
+                                value={values.dateFormat}
+                                onChange={(event) =>
+                                    handleSelectChange("dateFormat", event.target.value as WorkspaceDateFormat)
+                                }
+                            >
+                                <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
+                                <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
+                                <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Formato de hora"
+                                value={values.timeFormat}
+                                onChange={(event) =>
+                                    handleSelectChange("timeFormat", event.target.value as WorkspaceTimeFormat)
+                                }
+                            >
+                                <MenuItem value="12h">12 horas</MenuItem>
+                                <MenuItem value="24h">24 horas</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Inicio de semana"
+                                value={values.weekStartsOn}
+                                onChange={(event) =>
+                                    handleSelectChange(
+                                        "weekStartsOn",
+                                        Number(event.target.value) as WorkspaceWeekStartsOn
+                                    )
+                                }
+                            >
+                                {WEEK_OPTIONS.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Separador decimal"
+                                value={values.decimalSeparator}
+                                onChange={(event) =>
+                                    handleSelectChange(
+                                        "decimalSeparator",
+                                        event.target.value as WorkspaceDecimalSeparator
+                                    )
+                                }
+                            >
+                                <MenuItem value=".">Punto (.)</MenuItem>
+                                <MenuItem value=",">Coma (,)</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Separador de miles"
+                                value={values.thousandSeparator}
+                                onChange={(event) =>
+                                    handleSelectChange(
+                                        "thousandSeparator",
+                                        event.target.value as WorkspaceThousandSeparator
+                                    )
+                                }
+                            >
+                                <MenuItem value=",">Coma (,)</MenuItem>
+                                <MenuItem value=".">Punto (.)</MenuItem>
+                                <MenuItem value=" ">Espacio</MenuItem>
+                            </TextField>
+                        </Grid>
+                    </Grid>
+
+                    <Divider />
+
+                    <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                            Temas
+                        </Typography>
+
+                        {themeErrorMessage ? (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                {themeErrorMessage}
+                            </Alert>
+                        ) : null}
+
+                        {themeSuccessMessage ? (
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                {themeSuccessMessage}
+                            </Alert>
+                        ) : null}
+
+                        <Grid container spacing={2}>
+                            {availableThemes.length > 0 ? (
+                                availableThemes.map((theme) => (
+                                    <Grid key={theme.id} size={{ xs: 12, md: 4 }}>
+                                        <ThemePreviewCard
+                                            theme={theme}
+                                            selected={values.theme === theme.key}
+                                            onSelect={(themeKey) =>
+                                                handleSelectChange("theme", themeKey)
+                                            }
+                                            onEditCustomTheme={handleOpenCustomThemeDialog}
+                                        />
+                                    </Grid>
+                                ))
+                            ) : (
+                                <Grid size={{ xs: 12 }}>
+                                    <Alert severity="info">
+                                        No se encontraron temas configurados para este workspace.
+                                    </Alert>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+
+                    <Divider />
+
+                    <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                            Alertas y permisos
+                        </Typography>
+
+                        <Grid container spacing={1}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.notificationsEnabled}
+                                            onChange={(event) =>
+                                                handleSwitchChange(
+                                                    "notificationsEnabled",
+                                                    event.target.checked
+                                                )
+                                            }
+                                        />
+                                    }
+                                    label="Notificaciones generales"
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.budgetAlertsEnabled}
+                                            onChange={(event) =>
+                                                handleSwitchChange(
+                                                    "budgetAlertsEnabled",
+                                                    event.target.checked
+                                                )
+                                            }
+                                        />
+                                    }
+                                    label="Alertas de presupuesto"
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.debtAlertsEnabled}
+                                            onChange={(event) =>
+                                                handleSwitchChange(
+                                                    "debtAlertsEnabled",
+                                                    event.target.checked
+                                                )
+                                            }
+                                        />
+                                    }
+                                    label="Alertas de deuda"
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.allowMemberEdits}
+                                            onChange={(event) =>
+                                                handleSwitchChange(
+                                                    "allowMemberEdits",
+                                                    event.target.checked
+                                                )
+                                            }
+                                        />
+                                    }
+                                    label="Permitir edición por miembros"
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.isVisible}
+                                            onChange={(event) =>
+                                                handleSwitchChange(
+                                                    "isVisible",
+                                                    event.target.checked
+                                                )
+                                            }
+                                        />
+                                    }
+                                    label="Settings visibles"
+                                />
+                            </Grid>
+                        </Grid>
+                    </Box>
+
+                    <Stack
+                        direction={{ xs: "column-reverse", sm: "row" }}
+                        spacing={1.5}
+                        justifyContent="flex-end"
+                    >
+                        <Button
+                            variant="outlined"
+                            color="inherit"
+                            onClick={handleReset}
+                            disabled={isSubmitting}
+                        >
+                            Restaurar cambios
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Guardando..." : "Guardar ajustes"}
+                        </Button>
+                    </Stack>
                 </Stack>
+            </Paper>
 
-                {submitErrorMessage ? (
-                    <Alert severity="error">{submitErrorMessage}</Alert>
-                ) : null}
+            <Dialog
+                open={customThemeDialogOpen}
+                onClose={handleCloseCustomThemeDialog}
+                fullWidth
+                maxWidth="lg"
+            >
+                <DialogTitle>Editar tema personalizable</DialogTitle>
 
-                {submitSuccessMessage ? (
-                    <Alert severity="success">{submitSuccessMessage}</Alert>
-                ) : null}
-
-                <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Moneda por defecto"
-                            value={values.defaultCurrency}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "defaultCurrency",
-                                    event.target.value as WorkspaceSettingsRecord["defaultCurrency"]
-                                )
-                            }
-                        >
-                            <MenuItem value="MXN">MXN</MenuItem>
-                            <MenuItem value="USD">USD</MenuItem>
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Idioma"
-                            value={values.language}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "language",
-                                    event.target.value as WorkspaceLanguage
-                                )
-                            }
-                        >
-                            <MenuItem value="es-MX">Español (México)</MenuItem>
-                            <MenuItem value="en-US">English (US)</MenuItem>
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Zona horaria"
-                            value={values.timezone}
-                            onChange={(event) => handleTextChange("timezone", event)}
-                            error={timezoneError !== null}
-                            helperText={timezoneError ?? "Ejemplo: America/Mexico_City"}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Tema"
-                            value={values.theme}
-                            onChange={(event) => handleTextChange("theme", event)}
-                            helperText="Opcional. Si lo dejas vacío, el backend lo normaliza."
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Formato de fecha"
-                            value={values.dateFormat}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "dateFormat",
-                                    event.target.value as WorkspaceDateFormat
-                                )
-                            }
-                        >
-                            <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-                            <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
-                            <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Formato de hora"
-                            value={values.timeFormat}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "timeFormat",
-                                    event.target.value as WorkspaceTimeFormat
-                                )
-                            }
-                        >
-                            <MenuItem value="12h">12 horas</MenuItem>
-                            <MenuItem value="24h">24 horas</MenuItem>
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Inicio de semana"
-                            value={values.weekStartsOn}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "weekStartsOn",
-                                    Number(event.target.value) as WorkspaceWeekStartsOn
-                                )
-                            }
-                        >
-                            {WEEK_OPTIONS.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Separador decimal"
-                            value={values.decimalSeparator}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "decimalSeparator",
-                                    event.target.value as WorkspaceDecimalSeparator
-                                )
-                            }
-                        >
-                            <MenuItem value=".">Punto (.)</MenuItem>
-                            <MenuItem value=",">Coma (,)</MenuItem>
-                        </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Separador de miles"
-                            value={values.thousandSeparator}
-                            onChange={(event) =>
-                                handleSelectChange(
-                                    "thousandSeparator",
-                                    event.target.value as WorkspaceThousandSeparator
-                                )
-                            }
-                        >
-                            <MenuItem value=",">Coma (,)</MenuItem>
-                            <MenuItem value=".">Punto (.)</MenuItem>
-                            <MenuItem value=" ">Espacio</MenuItem>
-                        </TextField>
-                    </Grid>
-                </Grid>
-
-                <Divider />
-
-                <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                        Alertas y permisos
-                    </Typography>
-
-                    <Grid container spacing={1}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={values.notificationsEnabled}
-                                        onChange={(event) =>
-                                            handleSwitchChange(
-                                                "notificationsEnabled",
-                                                event.target.checked
-                                            )
-                                        }
-                                    />
+                <DialogContent dividers>
+                    {customThemeValues ? (
+                        <Stack spacing={2.5} sx={{ pt: 1 }}>
+                            <TextField
+                                fullWidth
+                                label="Nombre del tema"
+                                value={customThemeValues.name}
+                                onChange={(event) =>
+                                    handleCustomThemeTextChange("name", event.target.value)
                                 }
-                                label="Notificaciones generales"
+                                disabled={isUpdatingCustomTheme}
                             />
-                        </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={values.budgetAlertsEnabled}
-                                        onChange={(event) =>
-                                            handleSwitchChange(
-                                                "budgetAlertsEnabled",
-                                                event.target.checked
-                                            )
-                                        }
-                                    />
+                            <TextField
+                                fullWidth
+                                label="Descripción"
+                                value={customThemeValues.description}
+                                onChange={(event) =>
+                                    handleCustomThemeTextChange("description", event.target.value)
                                 }
-                                label="Alertas de presupuesto"
+                                disabled={isUpdatingCustomTheme}
+                                multiline
+                                minRows={2}
                             />
-                        </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={values.debtAlertsEnabled}
-                                        onChange={(event) =>
-                                            handleSwitchChange(
-                                                "debtAlertsEnabled",
-                                                event.target.checked
-                                            )
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Background"
+                                        value={customThemeValues.colors.background}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("background", value)
                                         }
+                                        disabled={isUpdatingCustomTheme}
                                     />
-                                }
-                                label="Alertas de deuda"
-                            />
-                        </Grid>
+                                </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={values.allowMemberEdits}
-                                        onChange={(event) =>
-                                            handleSwitchChange(
-                                                "allowMemberEdits",
-                                                event.target.checked
-                                            )
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Surface"
+                                        value={customThemeValues.colors.surface}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("surface", value)
                                         }
+                                        disabled={isUpdatingCustomTheme}
                                     />
-                                }
-                                label="Permitir edición por miembros"
-                            />
-                        </Grid>
+                                </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={values.isVisible}
-                                        onChange={(event) =>
-                                            handleSwitchChange(
-                                                "isVisible",
-                                                event.target.checked
-                                            )
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Surface Alt"
+                                        value={customThemeValues.colors.surfaceAlt}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("surfaceAlt", value)
                                         }
+                                        disabled={isUpdatingCustomTheme}
                                     />
-                                }
-                                label="Settings visibles"
-                            />
-                        </Grid>
-                    </Grid>
-                </Box>
+                                </Grid>
 
-                <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={1.5}
-                    justifyContent="flex-end"
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Text Primary"
+                                        value={customThemeValues.colors.textPrimary}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("textPrimary", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Text Secondary"
+                                        value={customThemeValues.colors.textSecondary}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("textSecondary", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Primary"
+                                        value={customThemeValues.colors.primary}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("primary", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Secondary"
+                                        value={customThemeValues.colors.secondary}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("secondary", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Success"
+                                        value={customThemeValues.colors.success}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("success", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Warning"
+                                        value={customThemeValues.colors.warning}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("warning", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Error"
+                                        value={customThemeValues.colors.error}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("error", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Info"
+                                        value={customThemeValues.colors.info}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("info", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <AdvancedColorPickerField
+                                        label="Divider"
+                                        value={customThemeValues.colors.divider}
+                                        onChange={(value) =>
+                                            handleCustomThemeColorChange("divider", value)
+                                        }
+                                        disabled={isUpdatingCustomTheme}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Stack>
+                    ) : (
+                        <Alert severity="warning">
+                            No encontramos el tema personalizable para este workspace.
+                        </Alert>
+                    )}
+                </DialogContent>
+
+                <DialogActions
+                    sx={{
+                        px: 3,
+                        py: 2,
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 1,
+                    }}
                 >
                     <Button
-                        type="button"
                         variant="outlined"
-                        onClick={handleReset}
-                        disabled={isSubmitting}
+                        color="inherit"
+                        onClick={handleCloseCustomThemeDialog}
+                        disabled={isUpdatingCustomTheme}
                     >
-                        Restablecer
+                        Cerrar
                     </Button>
 
                     <Button
-                        type="submit"
                         variant="contained"
-                        disabled={isSubmitting}
+                        onClick={handleSubmitCustomTheme}
+                        disabled={isUpdatingCustomTheme || customThemeValues === null}
                     >
-                        {isSubmitting ? "Guardando..." : "Guardar ajustes"}
+                        {isUpdatingCustomTheme ? "Guardando..." : "Guardar tema"}
                     </Button>
-                </Stack>
-            </Stack>
-        </Paper>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 }

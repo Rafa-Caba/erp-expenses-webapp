@@ -1,11 +1,7 @@
-import { createTheme } from "@mui/material/styles";
+// src/app/theme/appTheme.ts
 
-// English notes: keep theme centralized for consistent ERP UI.
-export const appTheme = createTheme({
-    palette: {
-        mode: "dark"
-    },
-    typography: {
-        fontFamily: ["Inter", "system-ui", "Avenir", "Helvetica", "Arial", "sans-serif"].join(",")
-    }
-});
+import { createAppThemeFromDefinition, getFallbackThemeDefinition } from "./theme.utils";
+
+export const appTheme = createAppThemeFromDefinition(
+    getFallbackThemeDefinition("dark")
+);

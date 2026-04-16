@@ -1,16 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
-import CssBaseline from "@mui/material/CssBaseline";
+
 import { AppProviders } from "./app/providers/AppProviders";
 import { router } from "./app/router/router";
 
 async function bootstrap() {
-
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <AppProviders>
-        <CssBaseline />
         <RouterProvider router={router} />
       </AppProviders>
     </React.StrictMode>

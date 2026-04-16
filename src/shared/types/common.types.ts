@@ -21,6 +21,8 @@ export type WorkspacePermission =
     | "workspace.archive"
     | "workspace.settings.read"
     | "workspace.settings.update"
+    | "themes.read"
+    | "themes.update"
     | "workspace.members.read"
     | "workspace.members.create"
     | "workspace.members.update"

@@ -11,6 +11,9 @@ import Typography from "@mui/material/Typography";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ApiErrorResponse } from "../../../shared/types/api.types";
 import { Page } from "../../../shared/ui/Page/Page";
+import { useUpdateThemeMutation } from "../../themes/hooks/useThemeMutations";
+import { useThemesQuery } from "../../themes/hooks/useThemesQuery";
+import type { ThemeColors } from "../../themes/types/theme.types";
 import { WorkspaceSettingsForm } from "../components/WorkspaceSettingsForm";
 import { WorkspaceSettingsSummaryCard } from "../components/WorkspaceSettingsSummaryCard";
 import { useUpdateWorkspaceSettingsMutation } from "../hooks/useWorkspaceSettingsMutations";
@@ -40,7 +43,9 @@ export function WorkspaceSettingsPage() {
     const workspaceId = useScopeStore((state) => state.workspaceId);
 
     const workspaceSettingsQuery = useWorkspaceSettingsQuery(workspaceId);
+    const themesQuery = useThemesQuery(workspaceId);
     const updateWorkspaceSettingsMutation = useUpdateWorkspaceSettingsMutation();
+    const updateThemeMutation = useUpdateThemeMutation();
 
     const handleSubmit = React.useCallback(
         (payload: UpdateWorkspaceSettingsPayload) => {
@@ -56,6 +61,25 @@ export function WorkspaceSettingsPage() {
         [updateWorkspaceSettingsMutation, workspaceId]
     );
 
+    const handleUpdateCustomTheme = React.useCallback(
+        (payload: {
+            name: string;
+            description: string | null;
+            colors: ThemeColors;
+        }) => {
+            if (!workspaceId) {
+                return;
+            }
+
+            updateThemeMutation.mutate({
+                workspaceId,
+                themeKey: "customizable",
+                payload,
+            });
+        },
+        [updateThemeMutation, workspaceId]
+    );
+
     if (!workspaceId) {
         return (
             <Page
@@ -69,7 +93,7 @@ export function WorkspaceSettingsPage() {
         );
     }
 
-    if (workspaceSettingsQuery.isLoading) {
+    if (workspaceSettingsQuery.isLoading || themesQuery.isLoading) {
         return (
             <Page
                 title="Ajustes"
@@ -83,7 +107,7 @@ export function WorkspaceSettingsPage() {
                                 Cargando ajustes…
                             </Typography>
                             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                Obteniendo la configuración del workspace activo.
+                                Obteniendo la configuración y temas del workspace activo.
                             </Typography>
                         </Box>
                     </Box>
@@ -108,7 +132,24 @@ export function WorkspaceSettingsPage() {
         );
     }
 
+    if (themesQuery.isError) {
+        return (
+            <Page
+                title="Ajustes"
+                subtitle="No fue posible cargar los temas del workspace."
+            >
+                <Alert severity="error">
+                    {getWorkspaceSettingsErrorMessage(
+                        themesQuery.error,
+                        "No se pudieron obtener los temas del workspace."
+                    )}
+                </Alert>
+            </Page>
+        );
+    }
+
     const settings = workspaceSettingsQuery.data?.settings ?? null;
+    const availableThemes = themesQuery.data?.themes ?? [];
 
     if (!settings) {
         return (
@@ -134,10 +175,21 @@ export function WorkspaceSettingsPage() {
         )
         : null;
 
+    const themeSuccessMessage = updateThemeMutation.isSuccess
+        ? updateThemeMutation.data.message
+        : null;
+
+    const themeErrorMessage = updateThemeMutation.isError
+        ? getWorkspaceSettingsErrorMessage(
+            updateThemeMutation.error,
+            "No se pudo actualizar el tema personalizable."
+        )
+        : null;
+
     return (
         <Page
             title="Ajustes"
-            subtitle="Administra idioma, formato, visibilidad y alertas del workspace activo."
+            subtitle="Administra idioma, formato, visibilidad, alertas y temas del workspace activo."
         >
             <Grid container spacing={2}>
                 <Grid size={{ xs: 12, lg: 4 }}>
@@ -146,11 +198,17 @@ export function WorkspaceSettingsPage() {
 
                 <Grid size={{ xs: 12, lg: 8 }}>
                     <WorkspaceSettingsForm
+                        workspaceId={workspaceId}
                         initialValues={settings}
+                        availableThemes={availableThemes}
                         isSubmitting={updateWorkspaceSettingsMutation.isPending}
+                        isUpdatingCustomTheme={updateThemeMutation.isPending}
                         submitErrorMessage={errorMessage}
                         submitSuccessMessage={successMessage}
+                        themeErrorMessage={themeErrorMessage}
+                        themeSuccessMessage={themeSuccessMessage}
                         onSubmit={handleSubmit}
+                        onUpdateCustomTheme={handleUpdateCustomTheme}
                     />
                 </Grid>
             </Grid>

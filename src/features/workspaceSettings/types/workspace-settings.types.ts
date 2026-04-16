@@ -6,6 +6,7 @@ import type {
     Nullable,
 } from "../../../shared/types/common.types";
 import type { EntityResponse } from "../../../shared/types/api.types";
+import type { ThemeKey } from "../../themes/types/theme.types";
 
 export type WorkspaceLanguage = "es-MX" | "en-US";
 export type WorkspaceDateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
@@ -22,7 +23,7 @@ export interface WorkspaceSettingsRecord {
     timezone: string;
     dateFormat: WorkspaceDateFormat;
     timeFormat: WorkspaceTimeFormat;
-    theme: Nullable<string>;
+    theme: Nullable<ThemeKey>;
     notificationsEnabled: boolean;
     budgetAlertsEnabled: boolean;
     debtAlertsEnabled: boolean;
@@ -41,7 +42,7 @@ export interface UpdateWorkspaceSettingsPayload {
     timezone?: string;
     dateFormat?: WorkspaceDateFormat;
     timeFormat?: WorkspaceTimeFormat;
-    theme?: string;
+    theme?: ThemeKey;
     notificationsEnabled?: boolean;
     budgetAlertsEnabled?: boolean;
     debtAlertsEnabled?: boolean;
