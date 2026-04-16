@@ -1,6 +1,12 @@
 // src/features/accounts/components/AccountsToolbar.tsx
 
+import React from "react";
+import Badge from "@mui/material/Badge";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import InputLabel from "@mui/material/InputLabel";
@@ -11,6 +17,9 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import TuneIcon from "@mui/icons-material/Tune";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
 import type { AccountType } from "../types/account.types";
 
@@ -29,126 +38,270 @@ type AccountsToolbarProps = {
     onResetFilters: () => void;
 };
 
-export function AccountsToolbar({
-    searchTerm,
-    typeFilter,
-    includeArchived,
-    includeInactive,
-    includeHidden,
-    totalCount,
-    onSearchTermChange,
-    onTypeFilterChange,
-    onIncludeArchivedChange,
-    onIncludeInactiveChange,
-    onIncludeHiddenChange,
-    onResetFilters,
-}: AccountsToolbarProps) {
+type DraftFilters = {
+    searchTerm: string;
+    typeFilter: AccountType | "ALL";
+    includeArchived: boolean;
+    includeInactive: boolean;
+    includeHidden: boolean;
+};
+
+function countActiveFilters(filters: DraftFilters): number {
+    let count = 0;
+
+    if (filters.searchTerm.trim()) count += 1;
+    if (filters.typeFilter !== "ALL") count += 1;
+    if (filters.includeArchived) count += 1;
+    if (filters.includeInactive) count += 1;
+    if (filters.includeHidden) count += 1;
+
+    return count;
+}
+
+function buildEmptyFilters(): DraftFilters {
+    return {
+        searchTerm: "",
+        typeFilter: "ALL",
+        includeArchived: false,
+        includeInactive: false,
+        includeHidden: false,
+    };
+}
+
+function AccountsToolbarFields({
+    filters,
+    onChange,
+}: {
+    filters: DraftFilters;
+    onChange: (next: DraftFilters) => void;
+}) {
     const handleTypeChange = (event: SelectChangeEvent<string>) => {
         const value = event.target.value;
 
-        if (value === "ALL") {
-            onTypeFilterChange("ALL");
-            return;
-        }
-
         if (
+            value === "ALL" ||
             value === "cash" ||
             value === "bank" ||
             value === "wallet" ||
             value === "savings" ||
             value === "credit"
         ) {
-            onTypeFilterChange(value);
+            onChange({
+                ...filters,
+                typeFilter: value,
+            });
         }
     };
 
     return (
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-            <Stack spacing={2}>
-                <Stack
-                    direction={{ xs: "column", lg: "row" }}
-                    spacing={2}
-                    alignItems={{ xs: "stretch", lg: "center" }}
+        <Stack spacing={2}>
+            <TextField
+                label="Buscar cuenta"
+                placeholder="Nombre, banco, últimos dígitos, notas..."
+                value={filters.searchTerm}
+                onChange={(event) =>
+                    onChange({
+                        ...filters,
+                        searchTerm: event.target.value,
+                    })
+                }
+                fullWidth
+            />
+
+            <FormControl fullWidth>
+                <InputLabel id="accounts-type-filter-label">Tipo</InputLabel>
+                <Select
+                    labelId="accounts-type-filter-label"
+                    label="Tipo"
+                    value={filters.typeFilter}
+                    onChange={handleTypeChange}
                 >
-                    <TextField
-                        label="Buscar cuenta"
-                        placeholder="Nombre, banco, últimos dígitos, notas..."
-                        value={searchTerm}
-                        onChange={(event) => onSearchTermChange(event.target.value)}
-                        fullWidth
-                    />
+                    <MenuItem value="ALL">Todos</MenuItem>
+                    <MenuItem value="cash">Efectivo</MenuItem>
+                    <MenuItem value="bank">Banco</MenuItem>
+                    <MenuItem value="wallet">Wallet</MenuItem>
+                    <MenuItem value="savings">Ahorro</MenuItem>
+                    <MenuItem value="credit">Crédito</MenuItem>
+                </Select>
+            </FormControl>
 
-                    <FormControl sx={{ minWidth: 180 }}>
-                        <InputLabel id="accounts-type-filter-label">Tipo</InputLabel>
-                        <Select
-                            labelId="accounts-type-filter-label"
-                            label="Tipo"
-                            value={typeFilter}
-                            onChange={handleTypeChange}
-                        >
-                            <MenuItem value="ALL">Todos</MenuItem>
-                            <MenuItem value="cash">Efectivo</MenuItem>
-                            <MenuItem value="bank">Banco</MenuItem>
-                            <MenuItem value="wallet">Wallet</MenuItem>
-                            <MenuItem value="savings">Ahorro</MenuItem>
-                            <MenuItem value="credit">Crédito</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                    <Button variant="outlined" onClick={onResetFilters}>
-                        Limpiar
-                    </Button>
-                </Stack>
-
-                <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    spacing={2}
-                    justifyContent="space-between"
-                    alignItems={{ xs: "stretch", md: "center" }}
-                >
-                    <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={includeArchived}
-                                    onChange={(event) =>
-                                        onIncludeArchivedChange(event.target.checked)
-                                    }
-                                />
+            <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                useFlexGap
+                flexWrap="wrap"
+            >
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={filters.includeArchived}
+                            onChange={(event) =>
+                                onChange({
+                                    ...filters,
+                                    includeArchived: event.target.checked,
+                                })
                             }
-                            label="Mostrar archivadas"
                         />
+                    }
+                    label="Mostrar archivadas"
+                />
 
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={includeInactive}
-                                    onChange={(event) =>
-                                        onIncludeInactiveChange(event.target.checked)
-                                    }
-                                />
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={filters.includeInactive}
+                            onChange={(event) =>
+                                onChange({
+                                    ...filters,
+                                    includeInactive: event.target.checked,
+                                })
                             }
-                            label="Mostrar inactivas"
                         />
+                    }
+                    label="Mostrar inactivas"
+                />
 
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={includeHidden}
-                                    onChange={(event) =>
-                                        onIncludeHiddenChange(event.target.checked)
-                                    }
-                                />
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={filters.includeHidden}
+                            onChange={(event) =>
+                                onChange({
+                                    ...filters,
+                                    includeHidden: event.target.checked,
+                                })
                             }
-                            label="Mostrar ocultas"
                         />
+                    }
+                    label="Mostrar ocultas"
+                />
+            </Stack>
+        </Stack>
+    );
+}
+
+export function AccountsToolbar(props: AccountsToolbarProps) {
+    const theme = useTheme();
+    const fullScreenDialog = useMediaQuery(theme.breakpoints.down("sm"));
+
+    const [dialogOpen, setDialogOpen] = React.useState(false);
+
+    const currentFilters = React.useMemo<DraftFilters>(
+        () => ({
+            searchTerm: props.searchTerm,
+            typeFilter: props.typeFilter,
+            includeArchived: props.includeArchived,
+            includeInactive: props.includeInactive,
+            includeHidden: props.includeHidden,
+        }),
+        [
+            props.searchTerm,
+            props.typeFilter,
+            props.includeArchived,
+            props.includeInactive,
+            props.includeHidden,
+        ]
+    );
+
+    const [draftFilters, setDraftFilters] = React.useState<DraftFilters>(currentFilters);
+
+    React.useEffect(() => {
+        setDraftFilters(currentFilters);
+    }, [currentFilters]);
+
+    const activeFiltersCount = countActiveFilters(currentFilters);
+
+    const applyDraftFilters = React.useCallback(() => {
+        props.onSearchTermChange(draftFilters.searchTerm);
+        props.onTypeFilterChange(draftFilters.typeFilter);
+        props.onIncludeArchivedChange(draftFilters.includeArchived);
+        props.onIncludeInactiveChange(draftFilters.includeInactive);
+        props.onIncludeHiddenChange(draftFilters.includeHidden);
+        setDialogOpen(false);
+    }, [draftFilters, props]);
+
+    return (
+        <>
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+                <Stack spacing={2}>
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1.5}
+                        justifyContent="space-between"
+                        alignItems={{ xs: "stretch", sm: "center" }}
+                    >
+                        <Stack spacing={0.5}>
+                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                Filtros de cuentas
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                                {props.totalCount} cuenta{props.totalCount === 1 ? "" : "s"} visibles con los filtros actuales.
+                            </Typography>
+                        </Stack>
+
+                        <Stack direction="row" spacing={1}>
+                            <Button variant="outlined" onClick={props.onResetFilters}>
+                                Limpiar
+                            </Button>
+
+                            <Badge
+                                color="primary"
+                                badgeContent={activeFiltersCount}
+                                invisible={activeFiltersCount === 0}
+                            >
+                                <Button
+                                    variant="contained"
+                                    startIcon={<TuneIcon />}
+                                    onClick={() => setDialogOpen(true)}
+                                >
+                                    Filtros
+                                </Button>
+                            </Badge>
+                        </Stack>
                     </Stack>
 
                     <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                        {totalCount} cuenta{totalCount === 1 ? "" : "s"}
+                        Los filtros se gestionan desde un modal para mantener la vista de cuentas más limpia.
                     </Typography>
                 </Stack>
-            </Stack>
-        </Paper>
+            </Paper>
+
+            <Dialog
+                open={dialogOpen}
+                onClose={() => setDialogOpen(false)}
+                fullWidth
+                maxWidth="sm"
+                fullScreen={fullScreenDialog}
+            >
+                <DialogTitle>Filtros de cuentas</DialogTitle>
+
+                <DialogContent dividers>
+                    <AccountsToolbarFields filters={draftFilters} onChange={setDraftFilters} />
+                </DialogContent>
+
+                <DialogActions
+                    sx={{
+                        px: 3,
+                        py: 2,
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 1,
+                    }}
+                >
+                    <Button onClick={() => setDraftFilters(buildEmptyFilters())}>
+                        Limpiar draft
+                    </Button>
+
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" onClick={() => setDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="contained" onClick={applyDraftFilters}>
+                            Aplicar
+                        </Button>
+                    </Stack>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 }

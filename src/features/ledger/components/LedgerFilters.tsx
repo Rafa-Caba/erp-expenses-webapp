@@ -1,6 +1,7 @@
 // src/features/ledger/components/LedgerFilters.tsx
 
 import React from "react";
+import Badge from "@mui/material/Badge";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -14,10 +15,9 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Badge from "@mui/material/Badge";
+import TuneIcon from "@mui/icons-material/Tune";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
-import TuneIcon from "@mui/icons-material/Tune";
 
 import { WorkspaceAccountSelect } from "../../components/WorkspaceAccountSelect";
 import { WorkspaceCategorySelect } from "../../components/WorkspaceCategorySelect";
@@ -100,6 +100,26 @@ function countActiveFilters(filters: DraftFilters): number {
     if (filters.dateTo.trim()) count += 1;
 
     return count;
+}
+
+function buildEmptyFilters(): DraftFilters {
+    return {
+        searchTerm: "",
+        accountId: "",
+        memberId: "",
+        categoryId: "",
+        currency: "ALL",
+        typeFilter: "ALL",
+        statusFilter: "ALL",
+        directionFilter: "ALL",
+        sortOrder: "date_desc",
+        includeHidden: false,
+        includeArchived: false,
+        includeInactive: false,
+        onlyRecurring: false,
+        dateFrom: "",
+        dateTo: "",
+    };
 }
 
 function LedgerFiltersFields({
@@ -382,7 +402,7 @@ function LedgerFiltersFields({
 
 export function LedgerFilters(props: LedgerFiltersProps) {
     const theme = useTheme();
-    const useDialogFilters = useMediaQuery(theme.breakpoints.down("lg"));
+    const fullScreenDialog = useMediaQuery(theme.breakpoints.down("sm"));
 
     const [dialogOpen, setDialogOpen] = React.useState(false);
 
@@ -451,174 +471,99 @@ export function LedgerFilters(props: LedgerFiltersProps) {
     }, [draftFilters, props]);
 
     const handleClearFromDialog = React.useCallback(() => {
-        const clearedFilters: DraftFilters = {
-            searchTerm: "",
-            accountId: "",
-            memberId: "",
-            categoryId: "",
-            currency: "ALL",
-            typeFilter: "ALL",
-            statusFilter: "ALL",
-            directionFilter: "ALL",
-            sortOrder: "date_desc",
-            includeHidden: false,
-            includeArchived: false,
-            includeInactive: false,
-            onlyRecurring: false,
-            dateFrom: "",
-            dateTo: "",
-        };
-
-        setDraftFilters(clearedFilters);
+        setDraftFilters(buildEmptyFilters());
     }, []);
 
-    if (useDialogFilters) {
-        return (
-            <>
-                <Paper
-                    variant="outlined"
-                    sx={{
-                        p: 2.5,
-                        borderRadius: 3,
-                    }}
-                >
-                    <Stack spacing={2}>
-                        <Stack
-                            direction={{ xs: "column", sm: "row" }}
-                            spacing={1.5}
-                            justifyContent="space-between"
-                            alignItems={{ xs: "stretch", sm: "center" }}
-                        >
-                            <Stack spacing={0.5}>
-                                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                                    Filtros del Ledger
-                                </Typography>
-                                <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                    {props.totalCount} renglones visibles con los filtros actuales.
-                                </Typography>
-                            </Stack>
-
-                            <Stack direction="row" spacing={1}>
-                                <Button variant="outlined" onClick={props.onResetFilters}>
-                                    Limpiar
-                                </Button>
-
-                                <Badge
-                                    color="primary"
-                                    badgeContent={activeFiltersCount}
-                                    invisible={activeFiltersCount === 0}
-                                >
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<TuneIcon />}
-                                        onClick={() => setDialogOpen(true)}
-                                    >
-                                        Filtros
-                                    </Button>
-                                </Badge>
-                            </Stack>
-                        </Stack>
-
-                        <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                            En pantallas medianas y móviles, los filtros se muestran en un modal
-                            para mantener la vista del ledger más limpia.
-                        </Typography>
-                    </Stack>
-                </Paper>
-
-                <Dialog
-                    open={dialogOpen}
-                    onClose={() => setDialogOpen(false)}
-                    fullWidth
-                    maxWidth="md"
-                    fullScreen={useMediaQuery(theme.breakpoints.down("sm"))}
-                >
-                    <DialogTitle>Filtros del Ledger</DialogTitle>
-
-                    <DialogContent dividers>
-                        <LedgerFiltersFields
-                            workspaceId={props.workspaceId}
-                            filters={draftFilters}
-                            onChange={setDraftFilters}
-                        />
-                    </DialogContent>
-
-                    <DialogActions
-                        sx={{
-                            px: 3,
-                            py: 2,
-                            justifyContent: "space-between",
-                            flexWrap: "wrap",
-                            gap: 1,
-                        }}
+    return (
+        <>
+            <Paper
+                variant="outlined"
+                sx={{
+                    p: 2.5,
+                    borderRadius: 3,
+                }}
+            >
+                <Stack spacing={2}>
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1.5}
+                        justifyContent="space-between"
+                        alignItems={{ xs: "stretch", sm: "center" }}
                     >
-                        <Button onClick={handleClearFromDialog}>Limpiar draft</Button>
+                        <Stack spacing={0.5}>
+                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                Filtros del Ledger
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                                {props.totalCount} renglones visibles con los filtros actuales.
+                            </Typography>
+                        </Stack>
 
                         <Stack direction="row" spacing={1}>
-                            <Button variant="outlined" onClick={() => setDialogOpen(false)}>
-                                Cancelar
+                            <Button variant="outlined" onClick={props.onResetFilters}>
+                                Limpiar
                             </Button>
-                            <Button variant="contained" onClick={applyDraftFilters}>
-                                Aplicar
-                            </Button>
-                        </Stack>
-                    </DialogActions>
-                </Dialog>
-            </>
-        );
-    }
 
-    return (
-        <Paper
-            variant="outlined"
-            sx={{
-                p: 2.5,
-                borderRadius: 3,
-            }}
-        >
-            <Stack spacing={2}>
-                <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    spacing={1.5}
-                    justifyContent="space-between"
-                    alignItems={{ xs: "stretch", md: "center" }}
-                >
-                    <Stack spacing={0.5}>
-                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                            Filtros del Ledger
-                        </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                            {props.totalCount} renglones visibles con los filtros actuales.
-                        </Typography>
+                            <Badge
+                                color="primary"
+                                badgeContent={activeFiltersCount}
+                                invisible={activeFiltersCount === 0}
+                            >
+                                <Button
+                                    variant="contained"
+                                    startIcon={<TuneIcon />}
+                                    onClick={() => setDialogOpen(true)}
+                                >
+                                    Filtros
+                                </Button>
+                            </Badge>
+                        </Stack>
                     </Stack>
 
-                    <Button variant="outlined" onClick={props.onResetFilters}>
-                        Limpiar filtros
-                    </Button>
+                    <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                        Los filtros se gestionan desde un modal para mantener la vista del ledger más limpia.
+                    </Typography>
                 </Stack>
+            </Paper>
 
-                <LedgerFiltersFields
-                    workspaceId={props.workspaceId}
-                    filters={currentFilters}
-                    onChange={(nextFilters) => {
-                        props.onSearchTermChange(nextFilters.searchTerm);
-                        props.onAccountIdChange(nextFilters.accountId);
-                        props.onMemberIdChange(nextFilters.memberId);
-                        props.onCategoryIdChange(nextFilters.categoryId);
-                        props.onCurrencyChange(nextFilters.currency);
-                        props.onTypeFilterChange(nextFilters.typeFilter);
-                        props.onStatusFilterChange(nextFilters.statusFilter);
-                        props.onDirectionFilterChange(nextFilters.directionFilter);
-                        props.onSortOrderChange(nextFilters.sortOrder);
-                        props.onIncludeHiddenChange(nextFilters.includeHidden);
-                        props.onIncludeArchivedChange(nextFilters.includeArchived);
-                        props.onIncludeInactiveChange(nextFilters.includeInactive);
-                        props.onOnlyRecurringChange(nextFilters.onlyRecurring);
-                        props.onDateFromChange(nextFilters.dateFrom);
-                        props.onDateToChange(nextFilters.dateTo);
+            <Dialog
+                open={dialogOpen}
+                onClose={() => setDialogOpen(false)}
+                fullWidth
+                maxWidth="md"
+                fullScreen={fullScreenDialog}
+            >
+                <DialogTitle>Filtros del Ledger</DialogTitle>
+
+                <DialogContent dividers>
+                    <LedgerFiltersFields
+                        workspaceId={props.workspaceId}
+                        filters={draftFilters}
+                        onChange={setDraftFilters}
+                    />
+                </DialogContent>
+
+                <DialogActions
+                    sx={{
+                        px: 3,
+                        py: 2,
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 1,
                     }}
-                />
-            </Stack>
-        </Paper>
+                >
+                    <Button onClick={handleClearFromDialog}>Limpiar draft</Button>
+
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" onClick={() => setDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="contained" onClick={applyDraftFilters}>
+                            Aplicar
+                        </Button>
+                    </Stack>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 }

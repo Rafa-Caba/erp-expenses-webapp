@@ -3,18 +3,26 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
+import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import TuneIcon from "@mui/icons-material/Tune";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
-import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import { Page } from "../../../shared/ui/Page/Page";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import { BudgetSummarySection } from "../components/BudgetSummarySection";
 import { CategoryBreakdownSection } from "../components/CategoryBreakdownSection";
 import { DebtSummarySection } from "../components/DebtSummarySection";
@@ -31,18 +39,17 @@ import {
     useMonthlySummaryQuery,
 } from "../hooks/useReportAnalyticsQueries";
 import {
-    useDeleteReportMutation,
-} from "../hooks/useReportMutations";
-import {
     useExportBudgetSummaryMutation,
     useExportCategoryBreakdownMutation,
     useExportDebtSummaryMutation,
     useExportMonthlySummaryMutation,
 } from "../hooks/useReportExportMutations";
+import { useDeleteReportMutation } from "../hooks/useReportMutations";
 import { useReportsQuery } from "../hooks/useReportsQuery";
 import { useReportStore } from "../store/report.store";
+import type { ReportFiltersFormValues } from "../types/report-filter-form.types";
 import type { ReportExportFormat, ReportRecord } from "../types/report.types";
-import { toReportFilters } from "../utils/report-filters";
+import { DEFAULT_REPORT_FILTERS_FORM_VALUES, toReportFilters } from "../utils/report-filters";
 
 function getReportsBasePath(scopeType: ScopeType, workspaceId: string | null): string {
     if (scopeType === "PERSONAL") {
@@ -78,6 +85,7 @@ function getSearchableText(report: ReportRecord): string {
 
 function buildExportName(prefix: string): string {
     const today = new Date().toISOString().slice(0, 10);
+
     return `${prefix}-${today}`;
 }
 
@@ -89,8 +97,26 @@ function openExternalFile(fileUrl: string): void {
     linkElement.click();
 }
 
+function countActiveAnalyticsFilters(filters: ReportFiltersFormValues): number {
+    let count = 0;
+
+    if (filters.dateFrom.trim()) count += 1;
+    if (filters.dateTo.trim()) count += 1;
+    if (filters.currency !== "") count += 1;
+    if (filters.memberId.trim()) count += 1;
+    if (filters.categoryId.trim()) count += 1;
+    if (filters.accountId.trim()) count += 1;
+    if (filters.cardId.trim()) count += 1;
+    if (filters.includeArchived) count += 1;
+    if (filters.groupBy !== "") count += 1;
+
+    return count;
+}
+
 export function ReportsPage() {
     const navigate = useNavigate();
+    const theme = useTheme();
+    const fullScreenAnalyticsDialog = useMediaQuery(theme.breakpoints.down("sm"));
 
     const scopeType = useScopeStore((state) => state.scopeType);
     const workspaceId = useScopeStore((state) => state.workspaceId);
@@ -110,6 +136,14 @@ export function ReportsPage() {
     const setAnalyticsFilters = useReportStore((state) => state.setAnalyticsFilters);
     const resetListFilters = useReportStore((state) => state.resetListFilters);
     const resetAnalyticsFilters = useReportStore((state) => state.resetAnalyticsFilters);
+
+    const [analyticsDialogOpen, setAnalyticsDialogOpen] = React.useState(false);
+    const [analyticsDraftFilters, setAnalyticsDraftFilters] =
+        React.useState<ReportFiltersFormValues>(analyticsFilters);
+
+    React.useEffect(() => {
+        setAnalyticsDraftFilters(analyticsFilters);
+    }, [analyticsFilters]);
 
     const reportFilters = React.useMemo(
         () => toReportFilters(analyticsFilters),
@@ -174,6 +208,8 @@ export function ReportsPage() {
         typeFilter !== "ALL" ||
         statusFilter !== "ALL" ||
         includeHidden;
+
+    const activeAnalyticsFiltersCount = countActiveAnalyticsFilters(analyticsFilters);
 
     const exportErrorMessage =
         exportMonthlySummaryMutation.isError
@@ -374,6 +410,15 @@ export function ReportsPage() {
         [deleteReportMutation, setSelectedReportId, workspaceId]
     );
 
+    const handleApplyAnalyticsDraft = React.useCallback(() => {
+        setAnalyticsFilters(analyticsDraftFilters);
+        setAnalyticsDialogOpen(false);
+    }, [analyticsDraftFilters, setAnalyticsFilters]);
+
+    const handleClearAnalyticsDraft = React.useCallback(() => {
+        setAnalyticsDraftFilters(DEFAULT_REPORT_FILTERS_FORM_VALUES);
+    }, []);
+
     if (!workspaceId) {
         return (
             <Page title="Reportes" subtitle="Resolviendo el workspace activo.">
@@ -424,30 +469,99 @@ export function ReportsPage() {
                     </Alert>
                 ) : null}
 
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
                     <Stack spacing={2}>
                         <Stack
-                            direction={{ xs: "column", md: "row" }}
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1.5}
                             justifyContent="space-between"
-                            spacing={2}
-                            alignItems={{ xs: "stretch", md: "center" }}
+                            alignItems={{ xs: "stretch", sm: "center" }}
                         >
-                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                                Filtros de analytics
-                            </Typography>
+                            <Stack spacing={0.5}>
+                                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                    Filtros de analytics
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                                    Configura el rango y los filtros para los resúmenes y exportaciones.
+                                </Typography>
+                            </Stack>
 
-                            <Button variant="outlined" onClick={resetAnalyticsFilters}>
-                                Limpiar filtros de analytics
-                            </Button>
+                            <Stack direction="row" spacing={1}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={resetAnalyticsFilters}
+                                >
+                                    Limpiar
+                                </Button>
+
+                                <Badge
+                                    color="primary"
+                                    badgeContent={activeAnalyticsFiltersCount}
+                                    invisible={activeAnalyticsFiltersCount === 0}
+                                >
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<TuneIcon />}
+                                        onClick={() => setAnalyticsDialogOpen(true)}
+                                    >
+                                        Filtros
+                                    </Button>
+                                </Badge>
+                            </Stack>
                         </Stack>
 
-                        <ReportFiltersFields
-                            workspaceId={workspaceId}
-                            values={analyticsFilters}
-                            onChange={setAnalyticsFilters}
-                        />
+                        <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                            Los filtros analíticos se gestionan desde un modal para mantener la vista de reportes más limpia.
+                        </Typography>
                     </Stack>
                 </Paper>
+
+                <Dialog
+                    open={analyticsDialogOpen}
+                    onClose={() => setAnalyticsDialogOpen(false)}
+                    fullWidth
+                    maxWidth="md"
+                    fullScreen={fullScreenAnalyticsDialog}
+                >
+                    <DialogTitle>Filtros de analytics</DialogTitle>
+
+                    <DialogContent dividers>
+                        <ReportFiltersFields
+                            workspaceId={workspaceId}
+                            values={analyticsDraftFilters}
+                            onChange={setAnalyticsDraftFilters}
+                        />
+                    </DialogContent>
+
+                    <DialogActions
+                        sx={{
+                            px: 3,
+                            py: 2,
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: 1,
+                        }}
+                    >
+                        <Button onClick={handleClearAnalyticsDraft}>
+                            Limpiar draft
+                        </Button>
+
+                        <Stack direction="row" spacing={1}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setAnalyticsDialogOpen(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleApplyAnalyticsDraft}
+                            >
+                                Aplicar
+                            </Button>
+                        </Stack>
+                    </DialogActions>
+                </Dialog>
 
                 <ReportExportActions
                     onExportMonthlySummary={handleExportMonthlySummary}
@@ -542,10 +656,23 @@ export function ReportsPage() {
                 />
 
                 {reportsQuery.isLoading ? (
-                    <Box sx={{ minHeight: 220, display: "grid", placeItems: "center" }}>
+                    <Box
+                        sx={{
+                            minHeight: 320,
+                            display: "grid",
+                            placeItems: "center",
+                        }}
+                    >
                         <Stack direction="row" spacing={2} alignItems="center">
                             <CircularProgress />
-                            <Typography>Cargando reportes...</Typography>
+                            <Box>
+                                <Typography sx={{ fontWeight: 700 }}>
+                                    Cargando reportes…
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                    Obteniendo reportes guardados del workspace.
+                                </Typography>
+                            </Box>
                         </Stack>
                     </Box>
                 ) : null}
@@ -572,8 +699,8 @@ export function ReportsPage() {
                     !reportsQuery.isError &&
                     filteredReports.length > 0 ? (
                     <Grid container spacing={2}>
-                        {filteredReports.map((report: ReportRecord) => (
-                            <Grid key={report._id} size={{ xs: 12, md: 6, xl: 4 }}>
+                        {filteredReports.map((report) => (
+                            <Grid key={report._id} size={{ xs: 12, lg: 6, xl: 4 }}>
                                 <ReportCard
                                     report={report}
                                     isSelected={selectedReportId === report._id}

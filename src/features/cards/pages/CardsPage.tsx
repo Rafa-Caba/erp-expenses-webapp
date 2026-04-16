@@ -213,7 +213,7 @@ export function CardsPage() {
                 justifyContent="space-between"
                 alignItems={{ xs: "stretch", sm: "center" }}
             >
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                <Typography variant="body2" sx={{ opacity: 0.8, width: { xs: '100%', sm: '65%', lg: '80%' } }}>
                     Aquí administras las tarjetas que luego podrán relacionarse con movimientos, pagos, estados de cuenta y cortes.
                 </Typography>
 
