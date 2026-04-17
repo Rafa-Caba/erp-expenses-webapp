@@ -7,6 +7,7 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -58,51 +59,91 @@ const ALL_WORKSPACE_PERMISSIONS: WorkspacePermission[] = [
     "workspace.read",
     "workspace.update",
     "workspace.archive",
+
     "workspace.settings.read",
     "workspace.settings.update",
+
+    "themes.read",
+    "themes.update",
+
     "workspace.members.read",
     "workspace.members.create",
     "workspace.members.update",
     "workspace.members.delete",
     "workspace.members.status.update",
+
     "accounts.read",
     "accounts.create",
     "accounts.update",
     "accounts.delete",
+
     "categories.read",
     "categories.create",
     "categories.update",
     "categories.delete",
+
     "transactions.read",
     "transactions.create",
     "transactions.update",
     "transactions.delete",
+
     "budgets.read",
     "budgets.create",
     "budgets.update",
     "budgets.delete",
+
     "debts.read",
     "debts.create",
     "debts.update",
     "debts.delete",
     "debts.pay",
+
     "payments.read",
     "payments.create",
     "payments.update",
     "payments.delete",
+
+    "reconciliation.read",
+    "reconciliation.create",
+    "reconciliation.update",
+    "reconciliation.delete",
+
     "savingGoals.read",
     "savingGoals.create",
     "savingGoals.update",
     "savingGoals.delete",
+
     "reminders.read",
     "reminders.create",
     "reminders.update",
     "reminders.delete",
+
     "reports.read",
     "reports.create",
     "reports.update",
     "reports.delete",
 ];
+
+const READ_ONLY_WORKSPACE_PERMISSIONS: WorkspacePermission[] = [
+    "workspace.read",
+    "workspace.settings.read",
+    "themes.read",
+    "workspace.members.read",
+    "accounts.read",
+    "categories.read",
+    "transactions.read",
+    "budgets.read",
+    "debts.read",
+    "payments.read",
+    "reconciliation.read",
+    "savingGoals.read",
+    "reminders.read",
+    "reports.read",
+];
+
+const ADMIN_WORKSPACE_PERMISSIONS: WorkspacePermission[] = ALL_WORKSPACE_PERMISSIONS.filter(
+    (permission) => permission !== "workspace.archive"
+);
 
 function validateWorkspaceMemberForm(
     values: WorkspaceMemberFormValues,
@@ -127,6 +168,28 @@ function validateWorkspaceMemberForm(
     }
 
     return errors;
+}
+
+function sortPermissions(
+    permissions: WorkspacePermission[]
+): WorkspacePermission[] {
+    return ALL_WORKSPACE_PERMISSIONS.filter((permission) =>
+        permissions.includes(permission)
+    );
+}
+
+function areAllPermissionsSelected(
+    permissions: WorkspacePermission[]
+): boolean {
+    return ALL_WORKSPACE_PERMISSIONS.every((permission) =>
+        permissions.includes(permission)
+    );
+}
+
+function countSelectedPermissions(
+    permissions: WorkspacePermission[]
+): number {
+    return permissions.length;
 }
 
 export function WorkspaceMemberForm({
@@ -209,7 +272,30 @@ export function WorkspaceMemberForm({
 
             return {
                 ...currentValues,
-                permissions: [...currentValues.permissions, permission],
+                permissions: sortPermissions([
+                    ...currentValues.permissions,
+                    permission,
+                ]),
+            };
+        });
+    };
+
+    const handleSetPermissions = (permissions: WorkspacePermission[]) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            permissions: sortPermissions(permissions),
+        }));
+    };
+
+    const handleToggleAllPermissions = () => {
+        setValues((currentValues) => {
+            const nextPermissions = areAllPermissionsSelected(currentValues.permissions)
+                ? []
+                : [...ALL_WORKSPACE_PERMISSIONS];
+
+            return {
+                ...currentValues,
+                permissions: nextPermissions,
             };
         });
     };
@@ -224,8 +310,14 @@ export function WorkspaceMemberForm({
             return;
         }
 
-        onSubmit(values);
+        onSubmit({
+            ...values,
+            permissions: sortPermissions(values.permissions),
+        });
     };
+
+    const allSelected = areAllPermissionsSelected(values.permissions);
+    const selectedPermissionsCount = countSelectedPermissions(values.permissions);
 
     return (
         <Card variant="outlined" sx={{ borderRadius: 3 }}>
@@ -255,7 +347,8 @@ export function WorkspaceMemberForm({
                                     helperText={
                                         mode === "edit"
                                             ? "El usuario asociado no se edita desde aquí."
-                                            : errors.userId ?? "Selecciona un usuario existente para asociarlo al miembro."
+                                            : errors.userId ??
+                                            "Selecciona un usuario existente para asociarlo al miembro."
                                     }
                                     disabled={isSubmitting || mode === "edit"}
                                     allowEmpty={false}
@@ -350,9 +443,83 @@ export function WorkspaceMemberForm({
                         <Divider />
 
                         <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                                Permisos
-                            </Typography>
+                            <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                spacing={1.5}
+                                justifyContent="space-between"
+                                alignItems={{ xs: "stretch", md: "center" }}
+                                sx={{ mb: 1.5 }}
+                            >
+                                <Box>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                        Permisos
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5 }}>
+                                        {selectedPermissionsCount} de {ALL_WORKSPACE_PERMISSIONS.length} permisos seleccionados.
+                                    </Typography>
+                                </Box>
+
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    useFlexGap
+                                    flexWrap="wrap"
+                                    justifyContent={{ xs: "flex-start", md: "flex-end" }}
+                                >
+                                    <Button
+                                        variant={allSelected ? "contained" : "outlined"}
+                                        onClick={handleToggleAllPermissions}
+                                        disabled={isSubmitting}
+                                    >
+                                        {allSelected ? "Quitar todos" : "Seleccionar todos"}
+                                    </Button>
+
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => handleSetPermissions(ADMIN_WORKSPACE_PERMISSIONS)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Preset admin
+                                    </Button>
+
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => handleSetPermissions(READ_ONLY_WORKSPACE_PERMISSIONS)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Solo lectura
+                                    </Button>
+
+                                    <Button
+                                        variant="text"
+                                        color="inherit"
+                                        onClick={() => handleSetPermissions([])}
+                                        disabled={isSubmitting}
+                                    >
+                                        Limpiar
+                                    </Button>
+                                </Stack>
+                            </Stack>
+
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                useFlexGap
+                                flexWrap="wrap"
+                                sx={{ mb: 2 }}
+                            >
+                                <Chip
+                                    size="small"
+                                    label={allSelected ? "Todos seleccionados" : "Selección manual"}
+                                    color={allSelected ? "primary" : "default"}
+                                    variant={allSelected ? "filled" : "outlined"}
+                                />
+                                <Chip
+                                    size="small"
+                                    label={`Role actual: ${values.role}`}
+                                    variant="outlined"
+                                />
+                            </Stack>
 
                             <Grid container spacing={1.5}>
                                 {ALL_WORKSPACE_PERMISSIONS.map((permission) => (
