@@ -7,6 +7,8 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ApiErrorResponse } from "../../../shared/types/api.types";
@@ -40,12 +42,21 @@ function getWorkspaceSettingsErrorMessage(
 }
 
 export function WorkspaceSettingsPage() {
+    const theme = useTheme();
+    const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+
     const workspaceId = useScopeStore((state) => state.workspaceId);
 
     const workspaceSettingsQuery = useWorkspaceSettingsQuery(workspaceId);
     const themesQuery = useThemesQuery(workspaceId);
     const updateWorkspaceSettingsMutation = useUpdateWorkspaceSettingsMutation();
     const updateThemeMutation = useUpdateThemeMutation();
+
+    const [summaryCollapsed, setSummaryCollapsed] = React.useState<boolean>(!isDesktop);
+
+    React.useEffect(() => {
+        setSummaryCollapsed(!isDesktop);
+    }, [isDesktop]);
 
     const handleSubmit = React.useCallback(
         (payload: UpdateWorkspaceSettingsPayload) => {
@@ -186,17 +197,35 @@ export function WorkspaceSettingsPage() {
         )
         : null;
 
+    const summaryGridSize = isDesktop
+        ? summaryCollapsed
+            ? 1
+            : 4
+        : 12;
+
+    const formGridSize = isDesktop
+        ? summaryCollapsed
+            ? 11
+            : 8
+        : 12;
+
     return (
         <Page
             title="Ajustes"
             subtitle="Administra idioma, formato, visibilidad, alertas y temas del workspace activo."
         >
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, lg: 4 }}>
-                    <WorkspaceSettingsSummaryCard settings={settings} />
+                <Grid size={{ xs: 12, lg: summaryGridSize }}>
+                    <WorkspaceSettingsSummaryCard
+                        settings={settings}
+                        collapsed={summaryCollapsed}
+                        onToggleCollapsed={() =>
+                            setSummaryCollapsed((currentValue) => !currentValue)
+                        }
+                    />
                 </Grid>
 
-                <Grid size={{ xs: 12, lg: 8 }}>
+                <Grid size={{ xs: 12, lg: formGridSize }}>
                     <WorkspaceSettingsForm
                         workspaceId={workspaceId}
                         initialValues={settings}
