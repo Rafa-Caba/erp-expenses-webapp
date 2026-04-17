@@ -1,5 +1,3 @@
-// src/features/workspaces/components/WorkspaceForm.tsx
-
 import React from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -18,6 +16,9 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { AdvancedColorPickerField } from "../../components/AdvancedColorPickerField";
+import { WorkspaceIconBadge } from "../../components/WorkspaceIconBadge";
+import { WorkspaceIconSelect } from "../../components/WorkspaceIconSelect";
 import type {
     CurrencyCode,
     WorkspaceKind,
@@ -106,7 +107,7 @@ export function WorkspaceForm({
     }, [initialValues]);
 
     const handleTextChange =
-        (field: keyof WorkspaceFormValues) =>
+        (field: "name" | "description" | "timezone" | "country") =>
             (event: React.ChangeEvent<HTMLInputElement>) => {
                 const nextValue = event.target.value;
 
@@ -116,19 +117,58 @@ export function WorkspaceForm({
                 }));
             };
 
-    const handleSelectChange =
-        (field: keyof WorkspaceFormValues) =>
-            (event: SelectChangeEvent<string>) => {
-                const nextValue = event.target.value;
+    const handleTypeChange = (event: SelectChangeEvent<WorkspaceType>) => {
+        const nextValue = event.target.value as WorkspaceType;
 
-                setValues((currentValues) => ({
-                    ...currentValues,
-                    [field]: nextValue,
-                }) as WorkspaceFormValues);
-            };
+        setValues((currentValues) => ({
+            ...currentValues,
+            type: nextValue,
+        }));
+    };
+
+    const handleKindChange = (event: SelectChangeEvent<WorkspaceKind>) => {
+        const nextValue = event.target.value as WorkspaceKind;
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            kind: nextValue,
+        }));
+    };
+
+    const handleCurrencyChange = (event: SelectChangeEvent<CurrencyCode>) => {
+        const nextValue = event.target.value as CurrencyCode;
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            currency: nextValue,
+        }));
+    };
+
+    const handleVisibilityChange = (event: SelectChangeEvent<WorkspaceVisibility>) => {
+        const nextValue = event.target.value as WorkspaceVisibility;
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            visibility: nextValue,
+        }));
+    };
+
+    const handleIconChange = (nextValue: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            icon: nextValue,
+        }));
+    };
+
+    const handleColorChange = (nextValue: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            color: nextValue,
+        }));
+    };
 
     const handleCheckboxChange =
-        (field: keyof WorkspaceFormValues) =>
+        (field: "isVisible" | "isActive" | "isArchived") =>
             (event: React.ChangeEvent<HTMLInputElement>) => {
                 const nextValue = event.target.checked;
 
@@ -157,12 +197,25 @@ export function WorkspaceForm({
                 <Box component="form" onSubmit={handleSubmit}>
                     <Stack spacing={3}>
                         <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                                {mode === "create" ? "Nuevo workspace" : "Editar workspace"}
-                            </Typography>
-                            <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Define el tipo de espacio, sus datos generales y su configuración base.
-                            </Typography>
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                                <WorkspaceIconBadge
+                                    workspaceType={values.type}
+                                    iconValue={values.icon}
+                                    colorValue={values.color}
+                                    size={40}
+                                />
+
+                                <Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                        {mode === "create" ? "Nuevo workspace" : "Editar workspace"}
+                                    </Typography>
+
+                                    <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                                        Define el tipo de espacio, sus datos generales y su
+                                        configuración base.
+                                    </Typography>
+                                </Box>
+                            </Stack>
                         </Box>
 
                         {submitErrorMessage ? (
@@ -173,16 +226,17 @@ export function WorkspaceForm({
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <FormControl fullWidth error={Boolean(errors.type)}>
                                     <InputLabel id="workspace-type-label">Tipo</InputLabel>
-                                    <Select
+                                    <Select<WorkspaceType>
                                         labelId="workspace-type-label"
                                         label="Tipo"
                                         value={values.type}
-                                        onChange={handleSelectChange("type")}
+                                        onChange={handleTypeChange}
                                     >
                                         <MenuItem value="PERSONAL">Personal</MenuItem>
                                         <MenuItem value="HOUSEHOLD">Casa</MenuItem>
                                         <MenuItem value="BUSINESS">Negocio</MenuItem>
                                     </Select>
+
                                     {errors.type ? (
                                         <FormHelperText>{errors.type}</FormHelperText>
                                     ) : null}
@@ -192,15 +246,16 @@ export function WorkspaceForm({
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <FormControl fullWidth error={Boolean(errors.kind)}>
                                     <InputLabel id="workspace-kind-label">Modo</InputLabel>
-                                    <Select
+                                    <Select<WorkspaceKind>
                                         labelId="workspace-kind-label"
                                         label="Modo"
                                         value={values.kind}
-                                        onChange={handleSelectChange("kind")}
+                                        onChange={handleKindChange}
                                     >
                                         <MenuItem value="INDIVIDUAL">Individual</MenuItem>
                                         <MenuItem value="COLLABORATIVE">Colaborativo</MenuItem>
                                     </Select>
+
                                     {errors.kind ? (
                                         <FormHelperText>{errors.kind}</FormHelperText>
                                     ) : null}
@@ -232,15 +287,16 @@ export function WorkspaceForm({
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <FormControl fullWidth error={Boolean(errors.currency)}>
                                     <InputLabel id="workspace-currency-label">Moneda</InputLabel>
-                                    <Select
+                                    <Select<CurrencyCode>
                                         labelId="workspace-currency-label"
                                         label="Moneda"
                                         value={values.currency}
-                                        onChange={handleSelectChange("currency")}
+                                        onChange={handleCurrencyChange}
                                     >
                                         <MenuItem value="MXN">MXN</MenuItem>
                                         <MenuItem value="USD">USD</MenuItem>
                                     </Select>
+
                                     {errors.currency ? (
                                         <FormHelperText>{errors.currency}</FormHelperText>
                                     ) : null}
@@ -267,37 +323,39 @@ export function WorkspaceForm({
                                 />
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField
-                                    label="Ícono"
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <WorkspaceIconSelect
                                     value={values.icon}
-                                    onChange={handleTextChange("icon")}
-                                    fullWidth
+                                    onChange={handleIconChange}
+                                    label="Ícono"
+                                    helperText="Selecciona un ícono curado para este workspace."
                                 />
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField
-                                    label="Color"
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <AdvancedColorPickerField
                                     value={values.color}
-                                    onChange={handleTextChange("color")}
-                                    placeholder="#1976d2"
-                                    fullWidth
+                                    onChange={handleColorChange}
+                                    label="Color"
+                                    helperText="Se usará para acentos visuales del workspace."
                                 />
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <FormControl fullWidth error={Boolean(errors.visibility)}>
-                                    <InputLabel id="workspace-visibility-label">Visibilidad</InputLabel>
-                                    <Select
+                                    <InputLabel id="workspace-visibility-label">
+                                        Visibilidad
+                                    </InputLabel>
+                                    <Select<WorkspaceVisibility>
                                         labelId="workspace-visibility-label"
                                         label="Visibilidad"
                                         value={values.visibility}
-                                        onChange={handleSelectChange("visibility")}
+                                        onChange={handleVisibilityChange}
                                     >
                                         <MenuItem value="PRIVATE">Privado</MenuItem>
                                         <MenuItem value="SHARED">Compartido</MenuItem>
                                     </Select>
+
                                     {errors.visibility ? (
                                         <FormHelperText>{errors.visibility}</FormHelperText>
                                     ) : null}
@@ -305,7 +363,11 @@ export function WorkspaceForm({
                             </Grid>
                         </Grid>
 
-                        <Stack direction={{ xs: "column", md: "row" }} spacing={2} flexWrap="wrap">
+                        <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            spacing={2}
+                            flexWrap="wrap"
+                        >
                             <FormControlLabel
                                 control={
                                     <Checkbox
@@ -342,16 +404,27 @@ export function WorkspaceForm({
                         </Stack>
 
                         <Stack
-                            direction={{ xs: "column", sm: "row" }}
+                            direction={{ xs: "column-reverse", sm: "row" }}
                             spacing={2}
                             justifyContent="flex-end"
                         >
-                            <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
+                            <Button
+                                variant="outlined"
+                                color="inherit"
+                                onClick={onCancel}
+                                disabled={isSubmitting}
+                            >
                                 Cancelar
                             </Button>
 
                             <Button type="submit" variant="contained" disabled={isSubmitting}>
-                                {mode === "create" ? "Crear workspace" : "Guardar cambios"}
+                                {isSubmitting
+                                    ? mode === "create"
+                                        ? "Creando..."
+                                        : "Guardando..."
+                                    : mode === "create"
+                                        ? "Crear workspace"
+                                        : "Guardar cambios"}
                             </Button>
                         </Stack>
                     </Stack>

@@ -1,5 +1,3 @@
-// src/app/shell/AppShell.tsx
-
 import React from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
@@ -48,6 +46,7 @@ import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 
+import { WorkspaceIconBadge } from "../../features/components/WorkspaceIconBadge";
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "../../features/auth/store/auth.store";
 import { ReminderBellMenu } from "../../features/reminders/components/ReminderBellMenu";
@@ -55,6 +54,7 @@ import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspa
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
 import { useScopeStore } from "../scope/scope.store";
 import { ScopeSwitcher } from "./ScopeSwitcher";
+import Stack from "@mui/material/Stack";
 
 const drawerWidthExpanded = 280;
 const drawerWidthCollapsed = 88;
@@ -115,15 +115,12 @@ export function AppShell() {
     const workspaces: WorkspaceListItem[] = data?.workspaces ?? [];
 
     const personalWorkspace: WorkspaceListItem | null =
-        workspaces.find((workspace: WorkspaceListItem) => workspace.type === "PERSONAL") ??
-        null;
+        workspaces.find((workspace: WorkspaceListItem) => workspace.type === "PERSONAL") ?? null;
 
     const activeWorkspace: WorkspaceListItem | null =
         scopeType === "PERSONAL"
             ? personalWorkspace
-            : workspaces.find(
-                (workspace: WorkspaceListItem) => workspace.id === workspaceId
-            ) ?? null;
+            : workspaces.find((workspace: WorkspaceListItem) => workspace.id === workspaceId) ?? null;
 
     const scopeBase =
         scopeType === "PERSONAL"
@@ -243,12 +240,9 @@ export function AppShell() {
     const allItems = [...scopedNavItems, ...globalNavItems];
 
     const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
-    const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] =
-        React.useState(false);
-    const [accountMenuAnchorEl, setAccountMenuAnchorEl] =
-        React.useState<HTMLElement | null>(null);
-    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
-        React.useState(false);
+    const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] = React.useState(false);
+    const [accountMenuAnchorEl, setAccountMenuAnchorEl] = React.useState<HTMLElement | null>(null);
+    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = React.useState(false);
 
     const accountMenuOpen = Boolean(accountMenuAnchorEl);
     const currentDrawerWidth = isDesktopSidebarCollapsed
@@ -305,9 +299,7 @@ export function AppShell() {
 
     const currentBottomValue = React.useMemo(() => {
         const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
-        const hitIndex = bottomItems.findIndex((item) =>
-            location.pathname.startsWith(item.to)
-        );
+        const hitIndex = bottomItems.findIndex((item) => location.pathname.startsWith(item.to));
 
         return hitIndex === -1 ? 0 : hitIndex;
     }, [location.pathname, scopedNavItems]);
@@ -423,21 +415,59 @@ export function AppShell() {
                     justifyContent: isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
                 }}
             >
-                <Badge color="primary" variant="standard">
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            opacity: 0.85,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                        }}
-                    >
-                        {isDesktopSidebarCollapsed || isMobile
-                            ? compactContextLabel
-                            : `Contexto: ${contextLabel}`}
-                    </Typography>
-                </Badge>
+                {activeWorkspace ? (
+                    isDesktopSidebarCollapsed && !isMobile ? (
+                        <Tooltip title={contextLabel} placement="right">
+                            <Box>
+                                <WorkspaceIconBadge
+                                    workspaceType={activeWorkspace.type}
+                                    iconValue={activeWorkspace.icon}
+                                    colorValue={activeWorkspace.color}
+                                    size={30}
+                                />
+                            </Box>
+                        </Tooltip>
+                    ) : (
+                        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
+                            <WorkspaceIconBadge
+                                workspaceType={activeWorkspace.type}
+                                iconValue={activeWorkspace.icon}
+                                colorValue={activeWorkspace.color}
+                                size={28}
+                            />
+
+                            <Badge color="primary" variant="standard">
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        opacity: 0.85,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                    }}
+                                >
+                                    {isMobile ? contextLabel : `Contexto: ${contextLabel}`}
+                                </Typography>
+                            </Badge>
+                        </Stack>
+                    )
+                ) : (
+                    <Badge color="primary" variant="standard">
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                opacity: 0.85,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
+                        >
+                            {isDesktopSidebarCollapsed || isMobile
+                                ? compactContextLabel
+                                : `Contexto: ${contextLabel}`}
+                        </Typography>
+                    </Badge>
+                )}
             </Box>
 
             <Divider />
@@ -535,9 +565,7 @@ export function AppShell() {
                         sx={{
                             borderRadius: 2,
                             border: "1px solid",
-                            borderColor: isAdminUsersRoute
-                                ? "primary.main"
-                                : "divider",
+                            borderColor: isAdminUsersRoute ? "primary.main" : "divider",
                         }}
                     >
                         <ListItemIcon>
@@ -599,13 +627,7 @@ export function AppShell() {
                                 <MenuIcon />
                             </IconButton>
                         ) : (
-                            <Tooltip
-                                title={
-                                    isDesktopSidebarCollapsed
-                                        ? "Expandir menú"
-                                        : "Colapsar menú"
-                                }
-                            >
+                            <Tooltip title={isDesktopSidebarCollapsed ? "Expandir menú" : "Colapsar menú"}>
                                 <IconButton
                                     color="inherit"
                                     edge="start"
@@ -621,6 +643,15 @@ export function AppShell() {
                                 </IconButton>
                             </Tooltip>
                         )}
+
+                        {activeWorkspace ? (
+                            <WorkspaceIconBadge
+                                workspaceType={activeWorkspace.type}
+                                iconValue={activeWorkspace.icon}
+                                colorValue={activeWorkspace.color}
+                                size={30}
+                            />
+                        ) : null}
 
                         <Typography
                             variant="h6"
@@ -699,10 +730,7 @@ export function AppShell() {
 
                                     <Divider />
 
-                                    <MenuItem
-                                        onClick={handleLogout}
-                                        disabled={logoutMutation.isPending}
-                                    >
+                                    <MenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
                                         <ListItemIcon>
                                             <LogoutRoundedIcon fontSize="small" />
                                         </ListItemIcon>
@@ -824,9 +852,7 @@ export function AppShell() {
                         WebkitOverflowScrolling: "touch",
                         p: { xs: 2, md: 3 },
                         pb: isMobile ? mobileContentPaddingBottom : 3,
-                        scrollPaddingBottom: isMobile
-                            ? mobileContentPaddingBottom
-                            : 24,
+                        scrollPaddingBottom: isMobile ? mobileContentPaddingBottom : 24,
                         boxSizing: "border-box",
                     }}
                 >
@@ -861,9 +887,7 @@ export function AppShell() {
                             showLabels
                             value={currentBottomValue}
                             onChange={(_, nextValue: number) => {
-                                const bottomItems = scopedNavItems.filter(
-                                    (item) => item.showInBottom
-                                );
+                                const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
                                 const targetItem = bottomItems[nextValue] ?? bottomItems[0];
 
                                 navigate(targetItem.to);

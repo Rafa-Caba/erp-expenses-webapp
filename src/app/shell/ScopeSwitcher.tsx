@@ -1,16 +1,16 @@
-// src/app/shell/ScopeSwitcher.tsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { useScopeStore } from "../scope/scope.store";
-import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
+import { WorkspaceIconBadge } from "../../features/components/WorkspaceIconBadge";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
+import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
+import { useScopeStore } from "../scope/scope.store";
 
 function getWorkspaceTypeLabel(workspaceType: "PERSONAL" | "HOUSEHOLD" | "BUSINESS"): string {
     switch (workspaceType) {
@@ -50,9 +50,7 @@ export function ScopeSwitcher() {
     );
 
     const currentLabel =
-        scopeType === "PERSONAL"
-            ? "Personal"
-            : currentWorkspace?.name ?? "Workspace";
+        scopeType === "PERSONAL" ? "Personal" : currentWorkspace?.name ?? "Workspace";
 
     const closeMenu = () => {
         setAnchorEl(null);
@@ -106,15 +104,36 @@ export function ScopeSwitcher() {
                 size="small"
                 onClick={(event) => setAnchorEl(event.currentTarget)}
                 sx={{ textTransform: "none" }}
+                startIcon={
+                    currentWorkspace ? (
+                        <WorkspaceIconBadge
+                            workspaceType={currentWorkspace.type}
+                            iconValue={currentWorkspace.icon}
+                            colorValue={currentWorkspace.color}
+                            size={22}
+                        />
+                    ) : null
+                }
             >
                 {currentLabel}
             </Button>
 
             <Menu anchorEl={anchorEl} open={open} onClose={closeMenu}>
                 <MenuItem onClick={goPersonal} disabled={!personalWorkspace}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        Personal
-                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        {personalWorkspace ? (
+                            <WorkspaceIconBadge
+                                workspaceType={personalWorkspace.type}
+                                iconValue={personalWorkspace.icon}
+                                colorValue={personalWorkspace.color}
+                                size={24}
+                            />
+                        ) : null}
+
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            Personal
+                        </Typography>
+                    </Stack>
                 </MenuItem>
 
                 <Divider />
@@ -129,11 +148,19 @@ export function ScopeSwitcher() {
                     <MenuItem disabled>Cargando…</MenuItem>
                 ) : nonPersonalWorkspaces.length > 0 ? (
                     nonPersonalWorkspaces.map((workspace: WorkspaceListItem) => (
-                        <MenuItem
-                            key={workspace.id}
-                            onClick={() => goWorkspace(workspace.id)}
-                        >
-                            {getWorkspaceTypeLabel(workspace.type)}: {workspace.name}
+                        <MenuItem key={workspace.id} onClick={() => goWorkspace(workspace.id)}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <WorkspaceIconBadge
+                                    workspaceType={workspace.type}
+                                    iconValue={workspace.icon}
+                                    colorValue={workspace.color}
+                                    size={24}
+                                />
+
+                                <Typography variant="body2">
+                                    {getWorkspaceTypeLabel(workspace.type)}: {workspace.name}
+                                </Typography>
+                            </Stack>
                         </MenuItem>
                     ))
                 ) : (

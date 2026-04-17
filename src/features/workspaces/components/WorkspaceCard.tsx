@@ -1,5 +1,3 @@
-// src/features/workspaces/components/WorkspaceCard.tsx
-
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
@@ -8,7 +6,10 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
 
+import { WorkspaceIconBadge } from "../../components/WorkspaceIconBadge";
+import { getWorkspaceColorWithFallback } from "../../components/WorkspaceIconCatalog";
 import type { WorkspaceListItem } from "../types/workspace.types";
 import { WorkspaceTypeChip } from "./WorkspaceTypeChip";
 
@@ -43,14 +44,26 @@ export function WorkspaceCard({
     onOpen,
     onEdit,
 }: WorkspaceCardProps) {
+    const accentColor = getWorkspaceColorWithFallback(workspace.color, workspace.type);
+
     return (
         <Card
             variant="outlined"
             sx={{
                 height: "100%",
                 borderRadius: 3,
-                borderColor: isSelected ? "primary.main" : "divider",
+                borderColor: isSelected ? accentColor : "divider",
                 boxShadow: isSelected ? 3 : 0,
+                position: "relative",
+                overflow: "hidden",
+                "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    inset: 0,
+                    borderTop: "5px solid",
+                    borderTopColor: accentColor,
+                    pointerEvents: "none",
+                },
             }}
         >
             <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -58,24 +71,29 @@ export function WorkspaceCard({
                     <WorkspaceTypeChip workspaceType={workspace.type} />
                     <Chip size="small" variant="outlined" label={getVisibilityLabel(workspace.visibility)} />
                     <Chip size="small" variant="outlined" label={getKindLabel(workspace.kind)} />
-                    {!workspace.isActive ? (
-                        <Chip size="small" color="warning" label="Inactivo" />
-                    ) : null}
-                    {workspace.isArchived ? (
-                        <Chip size="small" color="default" label="Archivado" />
-                    ) : null}
+                    {!workspace.isActive ? <Chip size="small" color="warning" label="Inactivo" /> : null}
+                    {workspace.isArchived ? <Chip size="small" color="default" label="Archivado" /> : null}
                 </Stack>
 
-                <Stack spacing={0.75}>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        {workspace.name}
-                    </Typography>
+                <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                    <WorkspaceIconBadge
+                        workspaceType={workspace.type}
+                        iconValue={workspace.icon}
+                        colorValue={workspace.color}
+                        size={40}
+                    />
 
-                    <Typography variant="body2" sx={{ opacity: 0.8, minHeight: 40 }}>
-                        {workspace.description?.trim()
-                            ? workspace.description
-                            : "Sin descripción por ahora."}
-                    </Typography>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                            {workspace.name}
+                        </Typography>
+
+                        <Typography variant="body2" sx={{ opacity: 0.8, minHeight: 40 }}>
+                            {workspace.description?.trim()
+                                ? workspace.description
+                                : "Sin descripción por ahora."}
+                        </Typography>
+                    </Box>
                 </Stack>
 
                 <Divider />
