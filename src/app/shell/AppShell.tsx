@@ -49,6 +49,7 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 
 import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
+import { useAuthStore } from "../../features/auth/store/auth.store";
 import { ReminderBellMenu } from "../../features/reminders/components/ReminderBellMenu";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
@@ -100,6 +101,7 @@ export function AppShell() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const logoutMutation = useLogoutMutation();
+    const authUser = useAuthStore((state) => state.user);
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -310,7 +312,7 @@ export function AppShell() {
         return hitIndex === -1 ? 0 : hitIndex;
     }, [location.pathname, scopedNavItems]);
 
-    const canAccessAdminUsers = true;
+    const canAccessAdminUsers = authUser?.role === "ADMIN";
     const remindersBasePath = getRemindersBasePath(scopeType, workspaceId);
 
     const handleOpenAccountMenu = (event: React.MouseEvent<HTMLElement>) => {
