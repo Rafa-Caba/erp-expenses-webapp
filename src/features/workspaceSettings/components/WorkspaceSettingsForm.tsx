@@ -11,18 +11,17 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 
 import { AdvancedColorPickerField } from "../../components/AdvancedColorPickerField";
+import { ThemePreviewCard } from "../../themes/components/ThemePreviewCard";
 import type { ThemeColors, ThemeKey, ThemeRecord } from "../../themes/types/theme.types";
+import type { CurrencyCode } from "../../../shared/types/common.types";
 import type {
     UpdateWorkspaceSettingsPayload,
     WorkspaceDateFormat,
@@ -68,13 +67,11 @@ type WorkspaceSettingsFormProps = {
     themeErrorMessage: string | null;
     themeSuccessMessage: string | null;
     onSubmit: (values: UpdateWorkspaceSettingsPayload) => void;
-    onUpdateCustomTheme: (
-        payload: {
-            name: string;
-            description: string | null;
-            colors: ThemeColors;
-        }
-    ) => void;
+    onUpdateCustomTheme: (payload: {
+        name: string;
+        description: string | null;
+        colors: ThemeColors;
+    }) => void;
 };
 
 const WEEK_OPTIONS: Array<{
@@ -109,9 +106,7 @@ function toFormValues(settings: WorkspaceSettingsRecord): WorkspaceSettingsFormV
     };
 }
 
-function getCustomizableTheme(
-    themes: ThemeRecord[]
-): ThemeRecord | null {
+function getCustomizableTheme(themes: ThemeRecord[]): ThemeRecord | null {
     return themes.find((theme) => theme.key === "customizable") ?? null;
 }
 
@@ -138,84 +133,6 @@ function toCustomThemeEditorValues(theme: ThemeRecord | null): CustomThemeEditor
             divider: theme.colors.divider,
         },
     };
-}
-
-type ThemePreviewCardProps = {
-    theme: ThemeRecord;
-    selected: boolean;
-    onSelect: (themeKey: ThemeKey) => void;
-    onEditCustomTheme: () => void;
-};
-
-function ThemePreviewCard({
-    theme,
-    selected,
-    onSelect,
-    onEditCustomTheme,
-}: ThemePreviewCardProps) {
-    return (
-        <Paper
-            variant="outlined"
-            sx={{
-                p: 2,
-                borderRadius: 3,
-                borderColor: selected ? "primary.main" : "divider",
-                boxShadow: selected ? 3 : 0,
-            }}
-        >
-            <Stack spacing={1.5}>
-                <Stack
-                    direction="row"
-                    spacing={1}
-                    justifyContent="space-between"
-                    alignItems="flex-start"
-                >
-                    <Box>
-                        <Typography sx={{ fontWeight: 800 }}>{theme.name}</Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                            {theme.description ?? "Sin descripción"}
-                        </Typography>
-                    </Box>
-
-                    {theme.key === "customizable" ? (
-                        <IconButton
-                            color="primary"
-                            onClick={onEditCustomTheme}
-                            aria-label="Editar tema personalizable"
-                        >
-                            <EditRoundedIcon />
-                        </IconButton>
-                    ) : null}
-                </Stack>
-
-                <Stack direction="row" spacing={1}>
-                    {Object.values(theme.colors)
-                        .slice(0, 6)
-                        .map((colorValue, index) => (
-                            <Box
-                                key={`${theme.key}-${index}`}
-                                sx={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: "50%",
-                                    bgcolor: colorValue,
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                }}
-                            />
-                        ))}
-                </Stack>
-
-                <Button
-                    variant={selected ? "contained" : "outlined"}
-                    onClick={() => onSelect(theme.key)}
-                    startIcon={<PaletteRoundedIcon />}
-                >
-                    {selected ? "Tema activo" : "Usar este tema"}
-                </Button>
-            </Stack>
-        </Paper>
-    );
 }
 
 export function WorkspaceSettingsForm({
@@ -330,10 +247,7 @@ export function WorkspaceSettingsForm({
     }, []);
 
     const handleCustomThemeTextChange = React.useCallback(
-        (
-            field: "name" | "description",
-            nextValue: string
-        ) => {
+        (field: "name" | "description", nextValue: string) => {
             setCustomThemeValues((currentValues) => {
                 if (!currentValues) {
                     return currentValues;
@@ -454,7 +368,10 @@ export function WorkspaceSettingsForm({
                                 label="Moneda por defecto"
                                 value={values.defaultCurrency}
                                 onChange={(event) =>
-                                    handleSelectChange("defaultCurrency", event.target.value as WorkspaceSettingsRecord["defaultCurrency"])
+                                    handleSelectChange(
+                                        "defaultCurrency",
+                                        event.target.value as CurrencyCode
+                                    )
                                 }
                             >
                                 <MenuItem value="MXN">MXN</MenuItem>
@@ -469,7 +386,10 @@ export function WorkspaceSettingsForm({
                                 label="Idioma"
                                 value={values.language}
                                 onChange={(event) =>
-                                    handleSelectChange("language", event.target.value as WorkspaceLanguage)
+                                    handleSelectChange(
+                                        "language",
+                                        event.target.value as WorkspaceLanguage
+                                    )
                                 }
                             >
                                 <MenuItem value="es-MX">Español (México)</MenuItem>
@@ -495,7 +415,10 @@ export function WorkspaceSettingsForm({
                                 label="Formato de fecha"
                                 value={values.dateFormat}
                                 onChange={(event) =>
-                                    handleSelectChange("dateFormat", event.target.value as WorkspaceDateFormat)
+                                    handleSelectChange(
+                                        "dateFormat",
+                                        event.target.value as WorkspaceDateFormat
+                                    )
                                 }
                             >
                                 <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
@@ -511,7 +434,10 @@ export function WorkspaceSettingsForm({
                                 label="Formato de hora"
                                 value={values.timeFormat}
                                 onChange={(event) =>
-                                    handleSelectChange("timeFormat", event.target.value as WorkspaceTimeFormat)
+                                    handleSelectChange(
+                                        "timeFormat",
+                                        event.target.value as WorkspaceTimeFormat
+                                    )
                                 }
                             >
                                 <MenuItem value="12h">12 horas</MenuItem>
@@ -519,7 +445,7 @@ export function WorkspaceSettingsForm({
                             </TextField>
                         </Grid>
 
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <TextField
                                 select
                                 fullWidth
@@ -607,7 +533,11 @@ export function WorkspaceSettingsForm({
                                             onSelect={(themeKey) =>
                                                 handleSelectChange("theme", themeKey)
                                             }
-                                            onEditCustomTheme={handleOpenCustomThemeDialog}
+                                            onEditCustomTheme={
+                                                theme.key === "customizable"
+                                                    ? handleOpenCustomThemeDialog
+                                                    : null
+                                            }
                                         />
                                     </Grid>
                                 ))

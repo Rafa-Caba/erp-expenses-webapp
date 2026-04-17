@@ -1,101 +1,56 @@
+// src/app/shell/AppShell.tsx
+
 import React from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import AppBar from "@mui/material/AppBar";
-import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
-import IconButton from "@mui/material/IconButton";
-import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import Toolbar from "@mui/material/Toolbar";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
-
+import SettingsIcon from "@mui/icons-material/Settings";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
-import SettingsIcon from "@mui/icons-material/Settings";
-import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import SavingsIcon from "@mui/icons-material/Savings";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
-import { WorkspaceIconBadge } from "../../features/components/WorkspaceIconBadge";
-import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "../../features/auth/store/auth.store";
-import { ReminderBellMenu } from "../../features/reminders/components/ReminderBellMenu";
+import { useLogoutMutation } from "../../features/auth/hooks/useAuthMutations";
+import { ThemeSelectionDialog } from "../../features/themes/components/ThemeSelectionDialog";
+import { useThemesQuery } from "../../features/themes/hooks/useThemesQuery";
+import type { ThemeKey, ThemeRecord } from "../../features/themes/types/theme.types";
+import { useUpdateWorkspaceSettingsMutation } from "../../features/workspaceSettings/hooks/useWorkspaceSettingsMutations";
+import { useWorkspaceSettingsQuery } from "../../features/workspaceSettings/hooks/useWorkspaceSettingsQuery";
 import { useMyWorkspacesQuery } from "../../features/workspaces/hooks/useWorkspacesQuery";
 import type { WorkspaceListItem } from "../../features/workspaces/types/workspace.types";
 import { useScopeStore } from "../scope/scope.store";
-import { ScopeSwitcher } from "./ScopeSwitcher";
-import Stack from "@mui/material/Stack";
+import { AppShellAccountPanel } from "./AppShellAccountPanel";
+import { AppShellSidebar } from "./AppShellSidebar";
+import { AppShellTopBar } from "./AppShellTopBar";
+import type { NavItem } from "./AppShell.types";
+import {
+    getRemindersBasePath,
+    getThemeLabel,
+    getWorkspaceTypeLabel,
+} from "./AppShell.utils";
+import Toolbar from "@mui/material/Toolbar";
 
 const drawerWidthExpanded = 280;
 const drawerWidthCollapsed = 88;
 const accountDrawerWidth = 300;
 const mobileBottomNavigationHeight = 72;
 const mobileBottomContentSpacing = 28;
-
-type NavItem = {
-    label: string;
-    to: string;
-    icon: React.ReactNode;
-    showInBottom: boolean;
-};
-
-function getWorkspaceTypeLabel(
-    workspaceType: "PERSONAL" | "HOUSEHOLD" | "BUSINESS"
-): string {
-    switch (workspaceType) {
-        case "PERSONAL":
-            return "Personal";
-        case "HOUSEHOLD":
-            return "Casa";
-        case "BUSINESS":
-            return "Negocio";
-    }
-}
-
-function getRemindersBasePath(
-    scopeType: "PERSONAL" | "WORKSPACE",
-    workspaceId: string | null
-): string {
-    if (scopeType === "PERSONAL") {
-        return "/app/personal/reminders";
-    }
-
-    if (!workspaceId) {
-        return "/app/workspaces";
-    }
-
-    return `/app/w/${workspaceId}/reminders`;
-}
 
 export function AppShell() {
     const theme = useTheme();
@@ -110,17 +65,20 @@ export function AppShell() {
     const workspaceId = useScopeStore((state) => state.workspaceId);
     const workspaceType = useScopeStore((state) => state.workspaceType);
 
-    const { data } = useMyWorkspacesQuery();
+    const workspacesQuery = useMyWorkspacesQuery();
+    const workspaceSettingsQuery = useWorkspaceSettingsQuery(workspaceId);
+    const themesQuery = useThemesQuery(workspaceId);
+    const updateWorkspaceSettingsMutation = useUpdateWorkspaceSettingsMutation();
 
-    const workspaces: WorkspaceListItem[] = data?.workspaces ?? [];
+    const workspaces: WorkspaceListItem[] = workspacesQuery.data?.workspaces ?? [];
 
     const personalWorkspace: WorkspaceListItem | null =
-        workspaces.find((workspace: WorkspaceListItem) => workspace.type === "PERSONAL") ?? null;
+        workspaces.find((workspace) => workspace.type === "PERSONAL") ?? null;
 
     const activeWorkspace: WorkspaceListItem | null =
         scopeType === "PERSONAL"
             ? personalWorkspace
-            : workspaces.find((workspace: WorkspaceListItem) => workspace.id === workspaceId) ?? null;
+            : workspaces.find((workspace) => workspace.id === workspaceId) ?? null;
 
     const scopeBase =
         scopeType === "PERSONAL"
@@ -241,13 +199,42 @@ export function AppShell() {
 
     const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
     const [mobileAccountDrawerOpen, setMobileAccountDrawerOpen] = React.useState(false);
-    const [accountMenuAnchorEl, setAccountMenuAnchorEl] = React.useState<HTMLElement | null>(null);
-    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = React.useState(false);
+    const [accountMenuAnchorEl, setAccountMenuAnchorEl] =
+        React.useState<HTMLElement | null>(null);
+    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
+        React.useState(false);
+    const [themeDialogOpen, setThemeDialogOpen] = React.useState(false);
+    const [selectedThemeKey, setSelectedThemeKey] = React.useState<ThemeKey>("dark");
 
     const accountMenuOpen = Boolean(accountMenuAnchorEl);
     const currentDrawerWidth = isDesktopSidebarCollapsed
         ? drawerWidthCollapsed
         : drawerWidthExpanded;
+
+    const availableThemes: ThemeRecord[] = themesQuery.data?.themes ?? [];
+    const currentThemeKey: ThemeKey = React.useMemo(() => {
+        const workspaceTheme = workspaceSettingsQuery.data?.settings.theme;
+
+        if (
+            workspaceTheme === "dark" ||
+            workspaceTheme === "light" ||
+            workspaceTheme === "customizable"
+        ) {
+            return workspaceTheme;
+        }
+
+        return "dark";
+    }, [workspaceSettingsQuery.data?.settings.theme]);
+
+    React.useEffect(() => {
+        setSelectedThemeKey(currentThemeKey);
+    }, [currentThemeKey]);
+
+    React.useEffect(() => {
+        if (updateWorkspaceSettingsMutation.isSuccess && themeDialogOpen) {
+            setThemeDialogOpen(false);
+        }
+    }, [themeDialogOpen, updateWorkspaceSettingsMutation.isSuccess]);
 
     const contextLabel =
         activeWorkspace === null
@@ -294,12 +281,13 @@ export function AppShell() {
         location.pathname.startsWith("/app/profile");
 
     const showBottomNavigation = !isGlobalSection;
-
     const isAdminUsersRoute = location.pathname.startsWith("/app/admin/users");
 
     const currentBottomValue = React.useMemo(() => {
         const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
-        const hitIndex = bottomItems.findIndex((item) => location.pathname.startsWith(item.to));
+        const hitIndex = bottomItems.findIndex((item) =>
+            location.pathname.startsWith(item.to)
+        );
 
         return hitIndex === -1 ? 0 : hitIndex;
     }, [location.pathname, scopedNavItems]);
@@ -341,265 +329,35 @@ export function AppShell() {
         logoutMutation.mutate();
     };
 
-    const renderNavItem = (item: NavItem) => {
-        const isCollapsed = !isMobile && isDesktopSidebarCollapsed;
-
-        const navButton = (
-            <ListItemButton
-                key={item.label}
-                component={NavLink}
-                to={item.to}
-                onClick={() => setMobileDrawerOpen(false)}
-                sx={{
-                    minHeight: 48,
-                    px: isCollapsed ? 1.5 : 2,
-                    justifyContent: isCollapsed ? "center" : "initial",
-                    borderRadius: 2,
-                    mx: 1,
-                }}
-            >
-                <ListItemIcon
-                    sx={{
-                        minWidth: 0,
-                        mr: isCollapsed ? 0 : 2,
-                        justifyContent: "center",
-                    }}
-                >
-                    {item.icon}
-                </ListItemIcon>
-
-                {!isCollapsed ? <ListItemText primary={item.label} /> : null}
-            </ListItemButton>
-        );
-
-        if (isCollapsed) {
-            return (
-                <Tooltip key={item.label} title={item.label} placement="right">
-                    {navButton}
-                </Tooltip>
-            );
-        }
-
-        return navButton;
+    const handleOpenThemeDialog = () => {
+        updateWorkspaceSettingsMutation.reset();
+        setSelectedThemeKey(currentThemeKey);
+        handleCloseAccountMenu();
+        handleCloseMobileAccountDrawer();
+        setThemeDialogOpen(true);
     };
 
-    const drawerContent = (
-        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Toolbar
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
-                    gap: 1,
-                    px: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
-                }}
-            >
-                {!isDesktopSidebarCollapsed || isMobile ? (
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        Expenses App
-                    </Typography>
-                ) : (
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        ERP
-                    </Typography>
-                )}
-            </Toolbar>
+    const handleCloseThemeDialog = () => {
+        if (updateWorkspaceSettingsMutation.isPending) {
+            return;
+        }
 
-            <Divider />
+        updateWorkspaceSettingsMutation.reset();
+        setThemeDialogOpen(false);
+    };
 
-            <Box
-                sx={{
-                    px: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
-                    py: 1,
-                    display: "flex",
-                    justifyContent: isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
-                }}
-            >
-                {activeWorkspace ? (
-                    isDesktopSidebarCollapsed && !isMobile ? (
-                        <Tooltip title={contextLabel} placement="right">
-                            <Box>
-                                <WorkspaceIconBadge
-                                    workspaceType={activeWorkspace.type}
-                                    iconValue={activeWorkspace.icon}
-                                    colorValue={activeWorkspace.color}
-                                    size={30}
-                                />
-                            </Box>
-                        </Tooltip>
-                    ) : (
-                        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
-                            <WorkspaceIconBadge
-                                workspaceType={activeWorkspace.type}
-                                iconValue={activeWorkspace.icon}
-                                colorValue={activeWorkspace.color}
-                                size={28}
-                            />
+    const handleSaveTheme = () => {
+        if (!workspaceId) {
+            return;
+        }
 
-                            <Badge color="primary" variant="standard">
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        opacity: 0.85,
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                    }}
-                                >
-                                    {isMobile ? contextLabel : `Contexto: ${contextLabel}`}
-                                </Typography>
-                            </Badge>
-                        </Stack>
-                    )
-                ) : (
-                    <Badge color="primary" variant="standard">
-                        <Typography
-                            variant="body2"
-                            sx={{
-                                opacity: 0.85,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                            }}
-                        >
-                            {isDesktopSidebarCollapsed || isMobile
-                                ? compactContextLabel
-                                : `Contexto: ${contextLabel}`}
-                        </Typography>
-                    </Badge>
-                )}
-            </Box>
-
-            <Divider />
-
-            <List sx={{ flex: 1, pt: 1 }}>
-                {allItems.map((item) => renderNavItem(item))}
-            </List>
-
-            <Divider />
-
-            <Box
-                sx={{
-                    p: isDesktopSidebarCollapsed && !isMobile ? 1 : 2,
-                    textAlign: isDesktopSidebarCollapsed && !isMobile ? "center" : "left",
-                }}
-            >
-                {!isDesktopSidebarCollapsed || isMobile ? (
-                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                        ERP de gastos • Ledger • Conciliación
-                    </Typography>
-                ) : (
-                    <Tooltip title="ERP de gastos • Ledger • Conciliación" placement="right">
-                        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                            ERP
-                        </Typography>
-                    </Tooltip>
-                )}
-            </Box>
-        </Box>
-    );
-
-    const mobileAccountDrawerContent = (
-        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <Toolbar
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Cuenta
-                </Typography>
-
-                <Avatar
-                    variant="rounded"
-                    sx={{
-                        width: 36,
-                        height: 36,
-                        bgcolor: "transparent",
-                        border: "1px solid",
-                        borderColor: "divider",
-                    }}
-                >
-                    <PersonOutlineIcon fontSize="small" />
-                </Avatar>
-            </Toolbar>
-
-            <Divider />
-
-            <List sx={{ pt: 0 }}>
-                <ListItemButton onClick={handleNavigateToProfile}>
-                    <ListItemIcon>
-                        <PersonOutlineIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary="Perfil"
-                        secondary="Ver y editar tu información"
-                    />
-                </ListItemButton>
-
-                <ListItemButton disabled>
-                    <ListItemIcon>
-                        <PaletteOutlinedIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary="Tema"
-                        secondary="Placeholder para selector de tema"
-                    />
-                </ListItemButton>
-            </List>
-
-            <Divider />
-
-            <Box sx={{ p: 2, display: "grid", gap: 1.5 }}>
-                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700 }}>
-                    CONTEXTO
-                </Typography>
-
-                <ScopeSwitcher />
-
-                {canAccessAdminUsers ? (
-                    <ListItemButton
-                        onClick={handleNavigateToAdminUsers}
-                        sx={{
-                            borderRadius: 2,
-                            border: "1px solid",
-                            borderColor: isAdminUsersRoute ? "primary.main" : "divider",
-                        }}
-                    >
-                        <ListItemIcon>
-                            <AdminPanelSettingsOutlinedIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="Usuarios"
-                            secondary="Vista global para administración"
-                        />
-                    </ListItemButton>
-                ) : null}
-            </Box>
-
-            <Divider sx={{ mt: "auto" }} />
-
-            <List sx={{ pt: 0 }}>
-                <ListItemButton
-                    onClick={handleLogout}
-                    disabled={logoutMutation.isPending}
-                >
-                    <ListItemIcon>
-                        <LogoutRoundedIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={
-                            logoutMutation.isPending
-                                ? "Cerrando sesión..."
-                                : "Cerrar sesión"
-                        }
-                    />
-                </ListItemButton>
-            </List>
-        </Box>
-    );
+        updateWorkspaceSettingsMutation.mutate({
+            workspaceId,
+            payload: {
+                theme: selectedThemeKey,
+            },
+        });
+    };
 
     const mobileContentPaddingBottom = showBottomNavigation
         ? `calc(${mobileBottomNavigationHeight}px + env(safe-area-inset-bottom, 0px) + ${mobileBottomContentSpacing}px)`
@@ -615,160 +373,33 @@ export function AppShell() {
                 overflow: "hidden",
             }}
         >
-            <AppBar position="fixed" sx={{ zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1 }}>
-                <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-                        {isMobile ? (
-                            <IconButton
-                                color="inherit"
-                                edge="start"
-                                onClick={() => setMobileDrawerOpen(true)}
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                        ) : (
-                            <Tooltip title={isDesktopSidebarCollapsed ? "Expandir menú" : "Colapsar menú"}>
-                                <IconButton
-                                    color="inherit"
-                                    edge="start"
-                                    onClick={() =>
-                                        setIsDesktopSidebarCollapsed((currentValue) => !currentValue)
-                                    }
-                                >
-                                    {isDesktopSidebarCollapsed ? (
-                                        <KeyboardDoubleArrowRightIcon />
-                                    ) : (
-                                        <KeyboardDoubleArrowLeftIcon />
-                                    )}
-                                </IconButton>
-                            </Tooltip>
-                        )}
-
-                        {activeWorkspace ? (
-                            <WorkspaceIconBadge
-                                workspaceType={activeWorkspace.type}
-                                iconValue={activeWorkspace.icon}
-                                colorValue={activeWorkspace.color}
-                                size={30}
-                            />
-                        ) : null}
-
-                        <Typography
-                            variant="h6"
-                            sx={{
-                                fontWeight: 700,
-                                minWidth: 0,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                            }}
-                        >
-                            {headerTitle}
-                        </Typography>
-                    </Box>
-
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-                        {!isMobile ? (
-                            <>
-                                <ReminderBellMenu
-                                    workspaceId={workspaceId}
-                                    remindersPath={remindersBasePath}
-                                />
-
-                                <ScopeSwitcher />
-
-                                {canAccessAdminUsers ? (
-                                    <Button
-                                        color="inherit"
-                                        variant={isAdminUsersRoute ? "contained" : "outlined"}
-                                        size="small"
-                                        onClick={handleNavigateToAdminUsers}
-                                        startIcon={<AdminPanelSettingsOutlinedIcon />}
-                                    >
-                                        Usuarios
-                                    </Button>
-                                ) : null}
-
-                                <Tooltip title="Cuenta">
-                                    <IconButton color="inherit" onClick={handleOpenAccountMenu}>
-                                        <Avatar
-                                            variant="rounded"
-                                            sx={{
-                                                width: 38,
-                                                height: 38,
-                                                bgcolor: "transparent",
-                                                border: "1px solid",
-                                                borderColor: "currentColor",
-                                                color: "inherit",
-                                            }}
-                                        >
-                                            <PersonOutlineIcon fontSize="small" />
-                                        </Avatar>
-                                    </IconButton>
-                                </Tooltip>
-
-                                <Menu
-                                    anchorEl={accountMenuAnchorEl}
-                                    open={accountMenuOpen}
-                                    onClose={handleCloseAccountMenu}
-                                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                                    transformOrigin={{ vertical: "top", horizontal: "right" }}
-                                >
-                                    <MenuItem onClick={handleNavigateToProfile}>
-                                        <ListItemIcon>
-                                            <PersonOutlineIcon fontSize="small" />
-                                        </ListItemIcon>
-                                        Perfil
-                                    </MenuItem>
-
-                                    <MenuItem disabled>
-                                        <ListItemIcon>
-                                            <PaletteOutlinedIcon fontSize="small" />
-                                        </ListItemIcon>
-                                        Tema
-                                    </MenuItem>
-
-                                    <Divider />
-
-                                    <MenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
-                                        <ListItemIcon>
-                                            <LogoutRoundedIcon fontSize="small" />
-                                        </ListItemIcon>
-                                        {logoutMutation.isPending
-                                            ? "Cerrando sesión..."
-                                            : "Cerrar sesión"}
-                                    </MenuItem>
-                                </Menu>
-                            </>
-                        ) : (
-                            <>
-                                <ReminderBellMenu
-                                    workspaceId={workspaceId}
-                                    remindersPath={remindersBasePath}
-                                />
-
-                                <Tooltip title="Cuenta">
-                                    <IconButton color="inherit" onClick={handleOpenMobileAccountDrawer}>
-                                        <Avatar
-                                            variant="rounded"
-                                            sx={{
-                                                width: 38,
-                                                height: 38,
-                                                bgcolor: "transparent",
-                                                border: "1px solid",
-                                                borderColor: "currentColor",
-                                                color: "inherit",
-                                            }}
-                                        >
-                                            <PersonOutlineIcon fontSize="small" />
-                                        </Avatar>
-                                    </IconButton>
-                                </Tooltip>
-                            </>
-                        )}
-                    </Box>
-                </Toolbar>
-            </AppBar>
+            <AppShellTopBar
+                isMobile={isMobile}
+                isDesktopSidebarCollapsed={isDesktopSidebarCollapsed}
+                headerTitle={headerTitle}
+                activeWorkspace={activeWorkspace}
+                workspaceId={workspaceId}
+                remindersBasePath={remindersBasePath}
+                canAccessAdminUsers={canAccessAdminUsers}
+                isAdminUsersRoute={isAdminUsersRoute}
+                accountMenuAnchorEl={accountMenuAnchorEl}
+                accountMenuOpen={accountMenuOpen}
+                fullName={authUser?.fullName}
+                avatarUrl={authUser?.avatarUrl}
+                avatarCacheKey={authUser?.updatedAt}
+                isLoggingOut={logoutMutation.isPending}
+                onOpenMobileDrawer={() => setMobileDrawerOpen(true)}
+                onToggleDesktopSidebar={() =>
+                    setIsDesktopSidebarCollapsed((currentValue) => !currentValue)
+                }
+                onNavigateToAdminUsers={handleNavigateToAdminUsers}
+                onOpenAccountMenu={handleOpenAccountMenu}
+                onCloseAccountMenu={handleCloseAccountMenu}
+                onOpenMobileAccountDrawer={handleOpenMobileAccountDrawer}
+                onNavigateToProfile={handleNavigateToProfile}
+                onOpenThemeDialog={handleOpenThemeDialog}
+                onLogout={handleLogout}
+            />
 
             {!isMobile && (
                 <Drawer
@@ -791,7 +422,15 @@ export function AppShell() {
                         },
                     }}
                 >
-                    {drawerContent}
+                    <AppShellSidebar
+                        isMobile={isMobile}
+                        isDesktopSidebarCollapsed={isDesktopSidebarCollapsed}
+                        activeWorkspace={activeWorkspace}
+                        contextLabel={contextLabel}
+                        compactContextLabel={compactContextLabel}
+                        allItems={allItems}
+                        onNavigateItemClick={() => setMobileDrawerOpen(false)}
+                    />
                 </Drawer>
             )}
 
@@ -807,7 +446,15 @@ export function AppShell() {
                         },
                     }}
                 >
-                    {drawerContent}
+                    <AppShellSidebar
+                        isMobile={isMobile}
+                        isDesktopSidebarCollapsed={isDesktopSidebarCollapsed}
+                        activeWorkspace={activeWorkspace}
+                        contextLabel={contextLabel}
+                        compactContextLabel={compactContextLabel}
+                        allItems={allItems}
+                        onNavigateItemClick={() => setMobileDrawerOpen(false)}
+                    />
                 </Drawer>
             )}
 
@@ -825,9 +472,44 @@ export function AppShell() {
                         },
                     }}
                 >
-                    {mobileAccountDrawerContent}
+                    <AppShellAccountPanel
+                        fullName={authUser?.fullName}
+                        avatarUrl={authUser?.avatarUrl}
+                        avatarCacheKey={authUser?.updatedAt}
+                        workspaceId={workspaceId}
+                        currentThemeLabel={getThemeLabel(currentThemeKey)}
+                        canAccessAdminUsers={canAccessAdminUsers}
+                        isAdminUsersRoute={isAdminUsersRoute}
+                        isLoggingOut={logoutMutation.isPending}
+                        onNavigateToProfile={handleNavigateToProfile}
+                        onOpenThemeDialog={handleOpenThemeDialog}
+                        onNavigateToAdminUsers={handleNavigateToAdminUsers}
+                        onLogout={handleLogout}
+                    />
                 </Drawer>
             )}
+
+            <ThemeSelectionDialog
+                open={themeDialogOpen}
+                availableThemes={availableThemes}
+                selectedThemeKey={selectedThemeKey}
+                currentThemeKey={currentThemeKey}
+                isLoading={themesQuery.isLoading || workspaceSettingsQuery.isLoading}
+                isSaving={updateWorkspaceSettingsMutation.isPending}
+                errorMessage={
+                    updateWorkspaceSettingsMutation.isError
+                        ? updateWorkspaceSettingsMutation.error.message
+                        : null
+                }
+                successMessage={
+                    updateWorkspaceSettingsMutation.isSuccess
+                        ? updateWorkspaceSettingsMutation.data.message
+                        : null
+                }
+                onClose={handleCloseThemeDialog}
+                onSelect={setSelectedThemeKey}
+                onSave={handleSaveTheme}
+            />
 
             <Box
                 component="main"
@@ -887,7 +569,9 @@ export function AppShell() {
                             showLabels
                             value={currentBottomValue}
                             onChange={(_, nextValue: number) => {
-                                const bottomItems = scopedNavItems.filter((item) => item.showInBottom);
+                                const bottomItems = scopedNavItems.filter(
+                                    (item) => item.showInBottom
+                                );
                                 const targetItem = bottomItems[nextValue] ?? bottomItems[0];
 
                                 navigate(targetItem.to);
