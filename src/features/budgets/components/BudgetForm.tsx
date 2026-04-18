@@ -18,6 +18,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { WorkspaceCategorySelect } from "../../components/WorkspaceCategorySelect";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
 import type { CurrencyCode } from "../../../shared/types/common.types";
 import type { BudgetPeriodType, BudgetStatus } from "../types/budget.types";
@@ -222,6 +223,13 @@ export function BudgetForm({
                 }));
             };
 
+    const handleCategoryChange = (categoryId: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            categoryId,
+        }));
+    };
+
     const handleMemberChange = (memberId: string) => {
         setValues((currentValues) => ({
             ...currentValues,
@@ -371,12 +379,15 @@ export function BudgetForm({
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField
-                                    label="Category ID"
+                                <WorkspaceCategorySelect
+                                    workspaceId={workspaceId}
                                     value={values.categoryId}
-                                    onChange={handleTextChange("categoryId")}
-                                    helperText="Opcional. Déjalo vacío si el presupuesto aplica a todas las categorías."
-                                    fullWidth
+                                    onChange={handleCategoryChange}
+                                    label="Categoría"
+                                    helperText="Opcional. Déjala vacía si el presupuesto aplica a todas las categorías."
+                                    disabled={isSubmitting}
+                                    allowEmpty
+                                    emptyOptionLabel="Sin categoría específica"
                                 />
                             </Grid>
 

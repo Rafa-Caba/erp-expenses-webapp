@@ -26,6 +26,10 @@ import type {
     MemberStatus,
     WorkspacePermission,
 } from "../../../shared/types/common.types";
+import {
+    ALL_WORKSPACE_PERMISSIONS,
+    WorkspacePermissionsDialog,
+} from "./WorkspacePermissionsDialog";
 
 export type WorkspaceMemberFormValues = {
     userId: string;
@@ -54,96 +58,6 @@ type WorkspaceMemberFormProps = {
     onSubmit: (values: WorkspaceMemberFormValues) => void;
     onCancel: () => void;
 };
-
-const ALL_WORKSPACE_PERMISSIONS: WorkspacePermission[] = [
-    "workspace.read",
-    "workspace.update",
-    "workspace.archive",
-
-    "workspace.settings.read",
-    "workspace.settings.update",
-
-    "themes.read",
-    "themes.update",
-
-    "workspace.members.read",
-    "workspace.members.create",
-    "workspace.members.update",
-    "workspace.members.delete",
-    "workspace.members.status.update",
-
-    "accounts.read",
-    "accounts.create",
-    "accounts.update",
-    "accounts.delete",
-
-    "categories.read",
-    "categories.create",
-    "categories.update",
-    "categories.delete",
-
-    "transactions.read",
-    "transactions.create",
-    "transactions.update",
-    "transactions.delete",
-
-    "budgets.read",
-    "budgets.create",
-    "budgets.update",
-    "budgets.delete",
-
-    "debts.read",
-    "debts.create",
-    "debts.update",
-    "debts.delete",
-    "debts.pay",
-
-    "payments.read",
-    "payments.create",
-    "payments.update",
-    "payments.delete",
-
-    "reconciliation.read",
-    "reconciliation.create",
-    "reconciliation.update",
-    "reconciliation.delete",
-
-    "savingGoals.read",
-    "savingGoals.create",
-    "savingGoals.update",
-    "savingGoals.delete",
-
-    "reminders.read",
-    "reminders.create",
-    "reminders.update",
-    "reminders.delete",
-
-    "reports.read",
-    "reports.create",
-    "reports.update",
-    "reports.delete",
-];
-
-const READ_ONLY_WORKSPACE_PERMISSIONS: WorkspacePermission[] = [
-    "workspace.read",
-    "workspace.settings.read",
-    "themes.read",
-    "workspace.members.read",
-    "accounts.read",
-    "categories.read",
-    "transactions.read",
-    "budgets.read",
-    "debts.read",
-    "payments.read",
-    "reconciliation.read",
-    "savingGoals.read",
-    "reminders.read",
-    "reports.read",
-];
-
-const ADMIN_WORKSPACE_PERMISSIONS: WorkspacePermission[] = ALL_WORKSPACE_PERMISSIONS.filter(
-    (permission) => permission !== "workspace.archive"
-);
 
 function validateWorkspaceMemberForm(
     values: WorkspaceMemberFormValues,
@@ -202,6 +116,8 @@ export function WorkspaceMemberForm({
 }: WorkspaceMemberFormProps) {
     const [values, setValues] = React.useState<WorkspaceMemberFormValues>(initialValues);
     const [errors, setErrors] = React.useState<WorkspaceMemberFormErrors>({});
+    const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] =
+        React.useState<boolean>(false);
 
     React.useEffect(() => {
         setValues(initialValues);
@@ -300,6 +216,14 @@ export function WorkspaceMemberForm({
         });
     };
 
+    const handleOpenPermissionsDialog = () => {
+        setIsPermissionsDialogOpen(true);
+    };
+
+    const handleClosePermissionsDialog = () => {
+        setIsPermissionsDialogOpen(false);
+    };
+
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -320,240 +244,217 @@ export function WorkspaceMemberForm({
     const selectedPermissionsCount = countSelectedPermissions(values.permissions);
 
     return (
-        <Card variant="outlined" sx={{ borderRadius: 3 }}>
-            <CardContent>
-                <Box component="form" onSubmit={handleSubmit}>
-                    <Stack spacing={3}>
-                        <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                                {mode === "create" ? "Nuevo miembro" : "Editar miembro"}
-                            </Typography>
-                            <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Configura el acceso, visibilidad, permisos y estado del miembro dentro del workspace.
-                            </Typography>
-                        </Box>
+        <>
+            <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                <CardContent>
+                    <Box component="form" onSubmit={handleSubmit}>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                    {mode === "create" ? "Nuevo miembro" : "Editar miembro"}
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                                    Configura el acceso, visibilidad, permisos y estado del miembro dentro del workspace.
+                                </Typography>
+                            </Box>
 
-                        {submitErrorMessage ? (
-                            <Alert severity="error">{submitErrorMessage}</Alert>
-                        ) : null}
+                            {submitErrorMessage ? (
+                                <Alert severity="error">{submitErrorMessage}</Alert>
+                            ) : null}
 
-                        <Grid container spacing={2}>
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <UserSelect
-                                    value={values.userId}
-                                    onChange={handleUserIdChange}
-                                    label="Usuario"
-                                    error={Boolean(errors.userId)}
-                                    helperText={
-                                        mode === "edit"
-                                            ? "El usuario asociado no se edita desde aquí."
-                                            : errors.userId ??
-                                            "Selecciona un usuario existente para asociarlo al miembro."
-                                    }
-                                    disabled={isSubmitting || mode === "edit"}
-                                    allowEmpty={false}
-                                    activeFilter="ACTIVE"
-                                    emptyOptionLabel="Selecciona un usuario"
-                                />
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <UserSelect
+                                        value={values.userId}
+                                        onChange={handleUserIdChange}
+                                        label="Usuario"
+                                        error={Boolean(errors.userId)}
+                                        helperText={
+                                            mode === "edit"
+                                                ? "El usuario asociado no se edita desde aquí."
+                                                : errors.userId ??
+                                                "Selecciona un usuario existente para asociarlo al miembro."
+                                        }
+                                        disabled={isSubmitting || mode === "edit"}
+                                        allowEmpty={false}
+                                        activeFilter="ACTIVE"
+                                        emptyOptionLabel="Selecciona un usuario"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <TextField
+                                        label="Nombre visible"
+                                        value={values.displayName}
+                                        onChange={handleTextChange("displayName")}
+                                        error={Boolean(errors.displayName)}
+                                        helperText={errors.displayName}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <FormControl fullWidth error={Boolean(errors.role)}>
+                                        <InputLabel id="workspace-member-role-label">Rol</InputLabel>
+                                        <Select
+                                            labelId="workspace-member-role-label"
+                                            label="Rol"
+                                            value={values.role}
+                                            onChange={handleRoleChange}
+                                        >
+                                            <MenuItem value="OWNER">Owner</MenuItem>
+                                            <MenuItem value="ADMIN">Admin</MenuItem>
+                                            <MenuItem value="MEMBER">Miembro</MenuItem>
+                                            <MenuItem value="VIEWER">Viewer</MenuItem>
+                                        </Select>
+                                        {errors.role ? (
+                                            <FormHelperText>{errors.role}</FormHelperText>
+                                        ) : null}
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <FormControl fullWidth error={Boolean(errors.status)}>
+                                        <InputLabel id="workspace-member-status-label">Estado</InputLabel>
+                                        <Select
+                                            labelId="workspace-member-status-label"
+                                            label="Estado"
+                                            value={values.status}
+                                            onChange={handleStatusChange}
+                                        >
+                                            <MenuItem value="active">Activo</MenuItem>
+                                            <MenuItem value="invited">Invitado</MenuItem>
+                                            <MenuItem value="disabled">Deshabilitado</MenuItem>
+                                        </Select>
+                                        {errors.status ? (
+                                            <FormHelperText>{errors.status}</FormHelperText>
+                                        ) : null}
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Fecha de ingreso"
+                                        type="date"
+                                        value={values.joinedAt}
+                                        onChange={handleTextChange("joinedAt")}
+                                        InputLabelProps={{ shrink: true }}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        label="Notas"
+                                        value={values.notes}
+                                        onChange={handleTextChange("notes")}
+                                        multiline
+                                        minRows={3}
+                                        fullWidth
+                                    />
+                                </Grid>
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField
-                                    label="Nombre visible"
-                                    value={values.displayName}
-                                    onChange={handleTextChange("displayName")}
-                                    error={Boolean(errors.displayName)}
-                                    helperText={errors.displayName}
-                                    fullWidth
-                                />
-                            </Grid>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={values.isVisible}
+                                        onChange={handleVisibilityChange}
+                                    />
+                                }
+                                label="Visible"
+                            />
 
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <FormControl fullWidth error={Boolean(errors.role)}>
-                                    <InputLabel id="workspace-member-role-label">Rol</InputLabel>
-                                    <Select
-                                        labelId="workspace-member-role-label"
-                                        label="Rol"
-                                        value={values.role}
-                                        onChange={handleRoleChange}
-                                    >
-                                        <MenuItem value="OWNER">Owner</MenuItem>
-                                        <MenuItem value="ADMIN">Admin</MenuItem>
-                                        <MenuItem value="MEMBER">Miembro</MenuItem>
-                                        <MenuItem value="VIEWER">Viewer</MenuItem>
-                                    </Select>
-                                    {errors.role ? (
-                                        <FormHelperText>{errors.role}</FormHelperText>
-                                    ) : null}
-                                </FormControl>
-                            </Grid>
+                            <Divider />
 
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <FormControl fullWidth error={Boolean(errors.status)}>
-                                    <InputLabel id="workspace-member-status-label">Estado</InputLabel>
-                                    <Select
-                                        labelId="workspace-member-status-label"
-                                        label="Estado"
-                                        value={values.status}
-                                        onChange={handleStatusChange}
-                                    >
-                                        <MenuItem value="active">Activo</MenuItem>
-                                        <MenuItem value="invited">Invitado</MenuItem>
-                                        <MenuItem value="disabled">Deshabilitado</MenuItem>
-                                    </Select>
-                                    {errors.status ? (
-                                        <FormHelperText>{errors.status}</FormHelperText>
-                                    ) : null}
-                                </FormControl>
-                            </Grid>
-
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField
-                                    label="Fecha de ingreso"
-                                    type="date"
-                                    value={values.joinedAt}
-                                    onChange={handleTextChange("joinedAt")}
-                                    InputLabelProps={{ shrink: true }}
-                                    fullWidth
-                                />
-                            </Grid>
-
-                            <Grid size={{ xs: 12 }}>
-                                <TextField
-                                    label="Notas"
-                                    value={values.notes}
-                                    onChange={handleTextChange("notes")}
-                                    multiline
-                                    minRows={3}
-                                    fullWidth
-                                />
-                            </Grid>
-                        </Grid>
-
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={values.isVisible}
-                                    onChange={handleVisibilityChange}
-                                />
-                            }
-                            label="Visible"
-                        />
-
-                        <Divider />
-
-                        <Box>
-                            <Stack
-                                direction={{ xs: "column", md: "row" }}
-                                spacing={1.5}
-                                justifyContent="space-between"
-                                alignItems={{ xs: "stretch", md: "center" }}
-                                sx={{ mb: 1.5 }}
+                            <Card
+                                variant="outlined"
+                                sx={{
+                                    borderRadius: 3,
+                                    borderStyle: "dashed",
+                                }}
                             >
-                                <Box>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                        Permisos
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5 }}>
-                                        {selectedPermissionsCount} de {ALL_WORKSPACE_PERMISSIONS.length} permisos seleccionados.
-                                    </Typography>
-                                </Box>
+                                <CardContent>
+                                    <Stack spacing={2}>
+                                        <Stack
+                                            direction={{ xs: "column", md: "row" }}
+                                            spacing={1.5}
+                                            justifyContent="space-between"
+                                            alignItems={{ xs: "stretch", md: "center" }}
+                                        >
+                                            <Box>
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                    Permisos
+                                                </Typography>
 
-                                <Stack
-                                    direction="row"
-                                    spacing={1}
-                                    useFlexGap
-                                    flexWrap="wrap"
-                                    justifyContent={{ xs: "flex-start", md: "flex-end" }}
-                                >
-                                    <Button
-                                        variant={allSelected ? "contained" : "outlined"}
-                                        onClick={handleToggleAllPermissions}
-                                        disabled={isSubmitting}
-                                    >
-                                        {allSelected ? "Quitar todos" : "Seleccionar todos"}
-                                    </Button>
+                                                <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5 }}>
+                                                    {selectedPermissionsCount} de {ALL_WORKSPACE_PERMISSIONS.length} permisos seleccionados.
+                                                </Typography>
+                                            </Box>
 
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() => handleSetPermissions(ADMIN_WORKSPACE_PERMISSIONS)}
-                                        disabled={isSubmitting}
-                                    >
-                                        Preset admin
-                                    </Button>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={handleOpenPermissionsDialog}
+                                                disabled={isSubmitting}
+                                            >
+                                                Seleccionar permisos
+                                            </Button>
+                                        </Stack>
 
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() => handleSetPermissions(READ_ONLY_WORKSPACE_PERMISSIONS)}
-                                        disabled={isSubmitting}
-                                    >
-                                        Solo lectura
-                                    </Button>
+                                        <Stack
+                                            direction="row"
+                                            spacing={1}
+                                            useFlexGap
+                                            flexWrap="wrap"
+                                        >
+                                            <Chip
+                                                size="small"
+                                                label={allSelected ? "Todos seleccionados" : "Selección manual"}
+                                                color={allSelected ? "primary" : "default"}
+                                                variant={allSelected ? "filled" : "outlined"}
+                                            />
+                                            <Chip
+                                                size="small"
+                                                label={`Rol actual: ${values.role}`}
+                                                variant="outlined"
+                                            />
+                                        </Stack>
 
-                                    <Button
-                                        variant="text"
-                                        color="inherit"
-                                        onClick={() => handleSetPermissions([])}
-                                        disabled={isSubmitting}
-                                    >
-                                        Limpiar
-                                    </Button>
-                                </Stack>
-                            </Stack>
+                                        <Typography variant="body2" sx={{ opacity: 0.78 }}>
+                                            La lista completa de permisos se administra desde el modal para mantener el formulario más limpio.
+                                        </Typography>
+                                    </Stack>
+                                </CardContent>
+                            </Card>
 
                             <Stack
-                                direction="row"
-                                spacing={1}
-                                useFlexGap
-                                flexWrap="wrap"
-                                sx={{ mb: 2 }}
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={2}
+                                justifyContent="flex-end"
                             >
-                                <Chip
-                                    size="small"
-                                    label={allSelected ? "Todos seleccionados" : "Selección manual"}
-                                    color={allSelected ? "primary" : "default"}
-                                    variant={allSelected ? "filled" : "outlined"}
-                                />
-                                <Chip
-                                    size="small"
-                                    label={`Role actual: ${values.role}`}
-                                    variant="outlined"
-                                />
+                                <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
+                                    Cancelar
+                                </Button>
+
+                                <Button type="submit" variant="contained" disabled={isSubmitting}>
+                                    {mode === "create" ? "Crear miembro" : "Guardar cambios"}
+                                </Button>
                             </Stack>
-
-                            <Grid container spacing={1.5}>
-                                {ALL_WORKSPACE_PERMISSIONS.map((permission) => (
-                                    <Grid key={permission} size={{ xs: 12, md: 6, xl: 4 }}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={values.permissions.includes(permission)}
-                                                    onChange={() => handlePermissionToggle(permission)}
-                                                />
-                                            }
-                                            label={permission}
-                                        />
-                                    </Grid>
-                                ))}
-                            </Grid>
-                        </Box>
-
-                        <Stack
-                            direction={{ xs: "column", sm: "row" }}
-                            spacing={2}
-                            justifyContent="flex-end"
-                        >
-                            <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
-                                Cancelar
-                            </Button>
-
-                            <Button type="submit" variant="contained" disabled={isSubmitting}>
-                                {mode === "create" ? "Crear miembro" : "Guardar cambios"}
-                            </Button>
                         </Stack>
-                    </Stack>
-                </Box>
-            </CardContent>
-        </Card>
+                    </Box>
+                </CardContent>
+            </Card>
+
+            <WorkspacePermissionsDialog
+                open={isPermissionsDialogOpen}
+                role={values.role}
+                permissions={values.permissions}
+                isSubmitting={isSubmitting}
+                onClose={handleClosePermissionsDialog}
+                onTogglePermission={handlePermissionToggle}
+                onSetPermissions={handleSetPermissions}
+                onToggleAllPermissions={handleToggleAllPermissions}
+            />
+        </>
     );
 }
