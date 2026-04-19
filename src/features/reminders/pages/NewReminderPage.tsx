@@ -28,7 +28,7 @@ function getTodayDateInputValue(): string {
 }
 
 const INITIAL_VALUES: ReminderFormValues = {
-    memberId: "",
+    targetMemberId: "",
     title: "",
     description: "",
     type: "custom",
@@ -37,7 +37,6 @@ const INITIAL_VALUES: ReminderFormValues = {
     dueDate: getTodayDateInputValue(),
     isRecurring: false,
     recurrenceRule: "",
-    status: "pending",
     priority: "",
     channel: "in_app",
     isVisible: true,
@@ -45,7 +44,7 @@ const INITIAL_VALUES: ReminderFormValues = {
 
 function toCreateReminderPayload(values: ReminderFormValues): CreateReminderPayload {
     return {
-        memberId: values.memberId.trim() || null,
+        targetMemberId: values.targetMemberId.trim() || null,
         title: values.title.trim(),
         description: values.description.trim() || null,
         type: values.type,
@@ -56,7 +55,6 @@ function toCreateReminderPayload(values: ReminderFormValues): CreateReminderPayl
         dueDate: values.dueDate,
         isRecurring: values.isRecurring,
         recurrenceRule: values.isRecurring ? values.recurrenceRule.trim() || null : null,
-        status: values.status,
         priority: values.priority || null,
         channel: values.channel,
         isVisible: values.isVisible,

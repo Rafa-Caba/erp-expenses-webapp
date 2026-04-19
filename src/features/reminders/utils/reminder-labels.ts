@@ -2,6 +2,7 @@
 
 import type {
     ReminderChannel,
+    ReminderMemberResponseStatus,
     ReminderPriority,
     ReminderRelatedEntityType,
     ReminderStatus,
@@ -22,6 +23,19 @@ export function getReminderTypeLabel(type: ReminderType): string {
 }
 
 export function getReminderStatusLabel(status: ReminderStatus): string {
+    switch (status) {
+        case "pending":
+            return "Pendiente";
+        case "in_progress":
+            return "En proceso";
+        case "resolved":
+            return "Resuelto";
+    }
+}
+
+export function getReminderMemberResponseStatusLabel(
+    status: ReminderMemberResponseStatus
+): string {
     switch (status) {
         case "pending":
             return "Pendiente";
@@ -79,4 +93,16 @@ export function getReminderRelatedEntityTypeLabel(
         case "custom":
             return "Personalizado";
     }
+}
+
+export function getReminderAudienceLabel(recipientCount: number): string {
+    if (recipientCount <= 0) {
+        return "Sin destinatarios";
+    }
+
+    if (recipientCount === 1) {
+        return "Individual";
+    }
+
+    return "Todos";
 }

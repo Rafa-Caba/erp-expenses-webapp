@@ -14,13 +14,20 @@ import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
 import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import { Page } from "../../../shared/ui/Page/Page";
+import { useWorkspaceByIdQuery } from "../../workspaces/hooks/useWorkspaceByIdQuery";
 import { ReminderCard } from "../components/ReminderCard";
 import { RemindersEmptyState } from "../components/RemindersEmptyState";
 import { RemindersToolbar } from "../components/RemindersToolbar";
-import { useDeleteReminderMutation } from "../hooks/useReminderMutations";
+import {
+    useDeleteReminderMutation,
+    useRespondToReminderMutation,
+} from "../hooks/useReminderMutations";
 import { useRemindersQuery } from "../hooks/useRemindersQuery";
 import { useReminderStore } from "../store/reminder.store";
-import type { ReminderRecord } from "../types/reminder.types";
+import type {
+    ReminderMemberResponseRecord,
+    ReminderRecord,
+} from "../types/reminder.types";
 
 function getRemindersBasePath(scopeType: ScopeType, workspaceId: string | null): string {
     if (scopeType === "PERSONAL") {
@@ -38,10 +45,54 @@ function normalizeText(value: string): string {
     return value.trim().toLocaleLowerCase();
 }
 
+function getCurrentMemberResponse(
+    reminder: ReminderRecord,
+    currentMemberId: string | null
+): ReminderMemberResponseRecord | null {
+    if (!currentMemberId) {
+        return null;
+    }
+
+    return (
+        reminder.responses.find((response) => response.memberId === currentMemberId) ?? null
+    );
+}
+
+function canManageReminder(
+    reminder: ReminderRecord,
+    currentMemberId: string | null,
+    currentRole: string | null
+): boolean {
+    if (currentRole === "OWNER") {
+        return true;
+    }
+
+    if (!currentMemberId) {
+        return false;
+    }
+
+    return reminder.createdByMemberId === currentMemberId;
+}
+
+function canRespondToReminder(
+    reminder: ReminderRecord,
+    currentMemberId: string | null,
+    currentRole: string | null
+): boolean {
+    if (canManageReminder(reminder, currentMemberId, currentRole)) {
+        return false;
+    }
+
+    const currentResponse = getCurrentMemberResponse(reminder, currentMemberId);
+
+    return currentResponse?.status === "pending" && reminder.status !== "resolved";
+}
+
 function getSearchableText(reminder: ReminderRecord): string {
     return [
         reminder._id,
-        reminder.memberId ?? "",
+        reminder.createdByMemberId,
+        reminder.recipientMemberIds.join(" "),
         reminder.title,
         reminder.description ?? "",
         reminder.type,
@@ -52,6 +103,11 @@ function getSearchableText(reminder: ReminderRecord): string {
         reminder.status,
         reminder.priority ?? "",
         reminder.channel,
+        String(reminder.responseSummary.totalRecipients),
+        String(reminder.responseSummary.totalResponded),
+        String(reminder.responseSummary.totalPending),
+        ...reminder.responses.map((response) => response.memberId),
+        ...reminder.responses.map((response) => response.status),
     ]
         .join(" ")
         .toLocaleLowerCase();
@@ -81,9 +137,15 @@ export function RemindersPage() {
     const resetReminderUi = useReminderStore((state) => state.reset);
 
     const remindersQuery = useRemindersQuery(workspaceId);
+    const workspaceQuery = useWorkspaceByIdQuery(workspaceId);
     const deleteReminderMutation = useDeleteReminderMutation();
+    const respondToReminderMutation = useRespondToReminderMutation();
 
     const remindersBasePath = getRemindersBasePath(scopeType, workspaceId);
+
+    const currentMembership = workspaceQuery.data?.workspace.currentMembership ?? null;
+    const currentMemberId = currentMembership?.memberId ?? null;
+    const currentRole = currentMembership?.role ?? null;
 
     const filteredReminders = React.useMemo(() => {
         const reminders = remindersQuery.data?.reminders ?? [];
@@ -114,6 +176,13 @@ export function RemindersPage() {
                 return getSearchableText(reminder).includes(normalizedSearchTerm);
             })
             .sort((left, right) => {
+                const leftOverdue = left.status !== "resolved" && left.isOverdue;
+                const rightOverdue = right.status !== "resolved" && right.isOverdue;
+
+                if (leftOverdue !== rightOverdue) {
+                    return Number(rightOverdue) - Number(leftOverdue);
+                }
+
                 const leftDate = new Date(left.dueDate).getTime();
                 const rightDate = new Date(right.dueDate).getTime();
 
@@ -134,6 +203,8 @@ export function RemindersPage() {
         typeFilter !== "ALL" ||
         channelFilter !== "ALL" ||
         includeHidden;
+
+    const isResponding = respondToReminderMutation.isPending;
 
     const handleResetFilters = React.useCallback(() => {
         resetReminderUi();
@@ -171,6 +242,40 @@ export function RemindersPage() {
         [deleteReminderMutation, setSelectedReminderId, workspaceId]
     );
 
+    const handleMarkDone = React.useCallback(
+        (reminder: ReminderRecord) => {
+            if (!workspaceId) {
+                return;
+            }
+
+            respondToReminderMutation.mutate({
+                workspaceId,
+                reminderId: reminder._id,
+                payload: {
+                    status: "done",
+                },
+            });
+        },
+        [respondToReminderMutation, workspaceId]
+    );
+
+    const handleDismiss = React.useCallback(
+        (reminder: ReminderRecord) => {
+            if (!workspaceId) {
+                return;
+            }
+
+            respondToReminderMutation.mutate({
+                workspaceId,
+                reminderId: reminder._id,
+                payload: {
+                    status: "dismissed",
+                },
+            });
+        },
+        [respondToReminderMutation, workspaceId]
+    );
+
     if (!workspaceId) {
         return (
             <Page title="Reminders" subtitle="Resolviendo el workspace activo.">
@@ -184,7 +289,7 @@ export function RemindersPage() {
     return (
         <Page
             title="Reminders"
-            subtitle="Administra recordatorios, fechas límite y recurrencias dentro del workspace activo."
+            subtitle="Administra recordatorios, fechas límite, recurrencias y progreso por miembros dentro del workspace activo."
         >
             <Stack
                 direction={{ xs: "column", sm: "row" }}
@@ -193,7 +298,7 @@ export function RemindersPage() {
                 alignItems={{ xs: "stretch", sm: "center" }}
             >
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Aquí registras reminders con fecha límite, canal, estado y vínculo
+                    Aquí registras reminders con fecha límite, canal, audiencia y vínculo
                     opcional con otras entidades del workspace.
                 </Typography>
 
@@ -225,6 +330,15 @@ export function RemindersPage() {
                     {getApiErrorMessage(
                         deleteReminderMutation.error,
                         "No se pudo eliminar el reminder."
+                    )}
+                </Alert>
+            ) : null}
+
+            {respondToReminderMutation.isError ? (
+                <Alert severity="error">
+                    {getApiErrorMessage(
+                        respondToReminderMutation.error,
+                        "No se pudo responder el reminder."
                     )}
                 </Alert>
             ) : null}
@@ -267,16 +381,34 @@ export function RemindersPage() {
                 !remindersQuery.isError &&
                 filteredReminders.length > 0 ? (
                 <Grid container spacing={2}>
-                    {filteredReminders.map((reminder: ReminderRecord) => (
-                        <Grid key={reminder._id} size={{ xs: 12, md: 6, xl: 4 }}>
-                            <ReminderCard
-                                reminder={reminder}
-                                isSelected={selectedReminderId === reminder._id}
-                                onEdit={handleEditReminder}
-                                onDelete={handleDeleteReminder}
-                            />
-                        </Grid>
-                    ))}
+                    {filteredReminders.map((reminder: ReminderRecord) => {
+                        const canManage = canManageReminder(
+                            reminder,
+                            currentMemberId,
+                            currentRole
+                        );
+                        const canRespond = canRespondToReminder(
+                            reminder,
+                            currentMemberId,
+                            currentRole
+                        );
+
+                        return (
+                            <Grid key={reminder._id} size={{ xs: 12, md: 6, xl: 4 }}>
+                                <ReminderCard
+                                    reminder={reminder}
+                                    isSelected={selectedReminderId === reminder._id}
+                                    canManage={canManage}
+                                    canRespond={canRespond}
+                                    isResponding={isResponding}
+                                    onEdit={handleEditReminder}
+                                    onDelete={handleDeleteReminder}
+                                    onMarkDone={handleMarkDone}
+                                    onDismiss={handleDismiss}
+                                />
+                            </Grid>
+                        );
+                    })}
                 </Grid>
             ) : null}
         </Page>

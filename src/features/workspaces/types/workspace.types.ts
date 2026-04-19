@@ -1,4 +1,4 @@
-// src/workspaces/types/workspace.types.ts
+// src/features/workspaces/types/workspace.types.ts
 
 import type {
     CurrencyCode,
@@ -7,8 +7,16 @@ import type {
     WorkspaceKind,
     WorkspaceType,
     WorkspaceVisibility,
+    MemberRole,
+    MemberStatus,
 } from "../../../shared/types/common.types";
 import type { CollectionResponse, EntityResponse } from "../../../shared/types/api.types";
+
+export interface WorkspaceCurrentMembership {
+    memberId: string;
+    role: MemberRole;
+    status: MemberStatus;
+}
 
 export interface WorkspaceRecord {
     id: string;
@@ -28,6 +36,7 @@ export interface WorkspaceRecord {
     isVisible: boolean;
     createdAt: IsoDateString;
     updatedAt: IsoDateString;
+    currentMembership: Nullable<WorkspaceCurrentMembership>;
 }
 
 export interface WorkspaceListItem extends WorkspaceRecord {

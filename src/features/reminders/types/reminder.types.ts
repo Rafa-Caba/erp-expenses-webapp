@@ -1,13 +1,17 @@
-// src/reminders/types/reminder.types.ts
+// src/features/reminders/types/reminder.types.ts
 
 import type {
     IsoDateString,
     Nullable,
 } from "../../../shared/types/common.types";
-import type { CollectionResponse, EntityResponse } from "../../../shared/types/api.types";
+import type {
+    CollectionResponse,
+    EntityResponse,
+} from "../../../shared/types/api.types";
 
 export type ReminderType = "bill" | "debt" | "subscription" | "custom";
-export type ReminderStatus = "pending" | "done" | "dismissed";
+export type ReminderStatus = "pending" | "in_progress" | "resolved";
+export type ReminderMemberResponseStatus = "pending" | "done" | "dismissed";
 export type ReminderPriority = "low" | "medium" | "high";
 export type ReminderChannel = "in_app" | "email" | "both";
 export type ReminderRelatedEntityType =
@@ -21,10 +25,27 @@ export type ReminderRelatedEntityType =
     | "card"
     | "custom";
 
+export interface ReminderMemberResponseRecord {
+    memberId: string;
+    status: ReminderMemberResponseStatus;
+    viewedAt: Nullable<IsoDateString>;
+    respondedAt: Nullable<IsoDateString>;
+}
+
+export interface ReminderResponseSummary {
+    totalRecipients: number;
+    totalViewed: number;
+    totalPending: number;
+    totalDone: number;
+    totalDismissed: number;
+    totalResponded: number;
+}
+
 export interface ReminderRecord {
     _id: string;
     workspaceId: string;
-    memberId: Nullable<string>;
+    createdByMemberId: string;
+    recipientMemberIds: string[];
     title: string;
     description: Nullable<string>;
     type: ReminderType;
@@ -34,16 +55,18 @@ export interface ReminderRecord {
     isRecurring: boolean;
     recurrenceRule: Nullable<string>;
     status: ReminderStatus;
+    responses: ReminderMemberResponseRecord[];
     priority: Nullable<ReminderPriority>;
     channel: ReminderChannel;
     isVisible: boolean;
     createdAt: IsoDateString;
     updatedAt: IsoDateString;
     isOverdue: boolean;
+    responseSummary: ReminderResponseSummary;
 }
 
 export interface CreateReminderPayload {
-    memberId?: Nullable<string>;
+    targetMemberId?: Nullable<string>;
     title: string;
     description?: Nullable<string>;
     type: ReminderType;
@@ -52,14 +75,13 @@ export interface CreateReminderPayload {
     dueDate: string;
     isRecurring: boolean;
     recurrenceRule?: Nullable<string>;
-    status?: ReminderStatus;
     priority?: Nullable<ReminderPriority>;
     channel?: ReminderChannel;
     isVisible?: boolean;
 }
 
 export interface UpdateReminderPayload {
-    memberId?: Nullable<string>;
+    targetMemberId?: Nullable<string>;
     title?: string;
     description?: Nullable<string>;
     type?: ReminderType;
@@ -68,10 +90,13 @@ export interface UpdateReminderPayload {
     dueDate?: string;
     isRecurring?: boolean;
     recurrenceRule?: Nullable<string>;
-    status?: ReminderStatus;
     priority?: Nullable<ReminderPriority>;
     channel?: ReminderChannel;
     isVisible?: boolean;
+}
+
+export interface RespondToReminderPayload {
+    status: Extract<ReminderMemberResponseStatus, "done" | "dismissed">;
 }
 
 export type RemindersResponse = CollectionResponse<"reminders", ReminderRecord>;

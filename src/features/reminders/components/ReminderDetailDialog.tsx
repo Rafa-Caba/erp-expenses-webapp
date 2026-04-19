@@ -13,19 +13,38 @@ import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 
-import type { ReminderRecord } from "../types/reminder.types";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
+import type {
+    ReminderMemberResponseRecord,
+    ReminderRecord,
+} from "../types/reminder.types";
+import {
+    getReminderChannelLabel,
+    getReminderMemberResponseStatusLabel,
+    getReminderPriorityLabel,
+    getReminderStatusLabel,
+    getReminderTypeLabel,
+} from "../utils/reminder-labels";
 
 type ReminderDetailDialogProps = {
     reminder: ReminderRecord | null;
     open: boolean;
     isSubmitting: boolean;
+    canManage: boolean;
+    canRespond: boolean;
     onClose: () => void;
+    onEdit: (reminder: ReminderRecord) => void;
+    onDelete: (reminder: ReminderRecord) => void;
     onMarkDone: (reminder: ReminderRecord) => void;
     onDismiss: (reminder: ReminderRecord) => void;
     onOpenReminders: () => void;
 };
 
-function formatDate(value: string): string {
+function formatDateTime(value: string | null): string {
+    if (!value) {
+        return "—";
+    }
+
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
@@ -38,38 +57,8 @@ function formatDate(value: string): string {
     }).format(date);
 }
 
-function getReminderTypeLabel(type: string): string {
-    switch (type) {
-        case "payment_due":
-            return "Pago";
-        case "debt_due":
-            return "Deuda";
-        case "budget_alert":
-            return "Presupuesto";
-        case "saving_goal":
-            return "Meta de ahorro";
-        case "custom":
-            return "Custom";
-        default:
-            return type;
-    }
-}
-
-function getReminderPriorityLabel(priority: string): string {
-    switch (priority) {
-        case "high":
-            return "Alta";
-        case "medium":
-            return "Media";
-        case "low":
-            return "Baja";
-        default:
-            return priority;
-    }
-}
-
 function getReminderPriorityColor(
-    priority: string
+    priority: string | null
 ): "error" | "warning" | "default" {
     if (priority === "high") {
         return "error";
@@ -82,24 +71,93 @@ function getReminderPriorityColor(
     return "default";
 }
 
-function getReminderStatusLabel(status: string): string {
-    switch (status) {
-        case "pending":
-            return "Pendiente";
-        case "done":
-            return "Hecho";
-        case "dismissed":
-            return "Descartado";
-        default:
-            return status;
+function getReminderStatusColor(
+    status: ReminderRecord["status"]
+): "warning" | "info" | "success" {
+    if (status === "pending") {
+        return "warning";
     }
+
+    if (status === "in_progress") {
+        return "info";
+    }
+
+    return "success";
+}
+
+function getResponseChipColor(
+    status: ReminderMemberResponseRecord["status"]
+): "warning" | "success" | "default" {
+    if (status === "pending") {
+        return "warning";
+    }
+
+    if (status === "done") {
+        return "success";
+    }
+
+    return "default";
+}
+
+function ReminderResponseRow({
+    workspaceId,
+    response,
+}: {
+    workspaceId: string;
+    response: ReminderMemberResponseRecord;
+}) {
+    const memberLabel = useWorkspaceMemberLabelById(
+        workspaceId,
+        response.memberId
+    ).label;
+
+    return (
+        <Stack
+            spacing={0.75}
+            sx={{
+                p: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+            }}
+        >
+            <Stack
+                direction={{ xs: "column", sm: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                spacing={1}
+            >
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {memberLabel}
+                </Typography>
+
+                <Chip
+                    size="small"
+                    color={getResponseChipColor(response.status)}
+                    label={getReminderMemberResponseStatusLabel(response.status)}
+                />
+            </Stack>
+
+            <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                <strong>Visto:</strong> {formatDateTime(response.viewedAt)}
+            </Typography>
+
+            <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                <strong>Respondió:</strong> {formatDateTime(response.respondedAt)}
+            </Typography>
+        </Stack>
+    );
 }
 
 export function ReminderDetailDialog({
     reminder,
     open,
     isSubmitting,
+    canManage,
+    canRespond,
     onClose,
+    onEdit,
+    onDelete,
     onMarkDone,
     onDismiss,
     onOpenReminders,
@@ -107,11 +165,14 @@ export function ReminderDetailDialog({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+    const creatorLabel = useWorkspaceMemberLabelById(
+        reminder?.workspaceId ?? "",
+        reminder?.createdByMemberId ?? null
+    ).label;
+
     if (!reminder) {
         return null;
     }
-
-    const canResolve = reminder.status === "pending";
 
     return (
         <Dialog
@@ -125,9 +186,9 @@ export function ReminderDetailDialog({
 
             <DialogContent dividers>
                 <Stack spacing={2}>
-                    {reminder.isOverdue && reminder.status === "pending" ? (
+                    {reminder.isOverdue && reminder.status !== "resolved" ? (
                         <Alert severity="warning">
-                            Este reminder está vencido y sigue pendiente.
+                            Este reminder está vencido y aún no ha sido resuelto por todos.
                         </Alert>
                     ) : null}
 
@@ -145,28 +206,18 @@ export function ReminderDetailDialog({
                             <Chip
                                 size="small"
                                 label={getReminderStatusLabel(reminder.status)}
-                                color={
-                                    reminder.status === "done"
-                                        ? "success"
-                                        : reminder.status === "dismissed"
-                                            ? "default"
-                                            : "primary"
-                                }
-                                variant={
-                                    reminder.status === "pending"
-                                        ? "filled"
-                                        : "outlined"
-                                }
+                                color={getReminderStatusColor(reminder.status)}
+                                variant={reminder.status === "resolved" ? "outlined" : "filled"}
                             />
                             <Chip
                                 size="small"
-                                label={getReminderPriorityLabel(reminder.priority ?? "")}
-                                color={getReminderPriorityColor(reminder.priority ?? "")}
+                                label={getReminderPriorityLabel(reminder.priority)}
+                                color={getReminderPriorityColor(reminder.priority)}
                                 variant="outlined"
                             />
                             <Chip
                                 size="small"
-                                label={reminder.channel}
+                                label={getReminderChannelLabel(reminder.channel)}
                                 variant="outlined"
                             />
                         </Stack>
@@ -176,7 +227,23 @@ export function ReminderDetailDialog({
 
                     <Stack spacing={1}>
                         <Typography variant="body2">
-                            <strong>Fecha:</strong> {formatDate(reminder.dueDate)}
+                            <strong>Creado por:</strong> {creatorLabel}
+                        </Typography>
+
+                        <Typography variant="body2">
+                            <strong>Fecha:</strong> {formatDateTime(reminder.dueDate)}
+                        </Typography>
+
+                        <Typography variant="body2">
+                            <strong>Destinatarios:</strong>{" "}
+                            {reminder.responseSummary.totalRecipients}
+                        </Typography>
+
+                        <Typography variant="body2">
+                            <strong>Progreso:</strong>{" "}
+                            {reminder.responseSummary.totalResponded} respondieron,{" "}
+                            {reminder.responseSummary.totalPending} pendientes,{" "}
+                            {reminder.responseSummary.totalViewed} vistos
                         </Typography>
 
                         {reminder.relatedEntityType ? (
@@ -218,6 +285,22 @@ export function ReminderDetailDialog({
                             </Stack>
                         </>
                     ) : null}
+
+                    <Divider />
+
+                    <Stack spacing={1}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            Respuestas de miembros
+                        </Typography>
+
+                        {reminder.responses.map((response) => (
+                            <ReminderResponseRow
+                                key={response.memberId}
+                                workspaceId={reminder.workspaceId}
+                                response={response}
+                            />
+                        ))}
+                    </Stack>
                 </Stack>
             </DialogContent>
 
@@ -271,14 +354,35 @@ export function ReminderDetailDialog({
                         },
                     }}
                 >
-                    {canResolve ? (
+                    {canManage ? (
+                        <>
+                            <Button
+                                variant="outlined"
+                                onClick={() => onEdit(reminder)}
+                                disabled={isSubmitting}
+                            >
+                                Editar
+                            </Button>
+
+                            <Button
+                                color="warning"
+                                variant="outlined"
+                                onClick={() => onDelete(reminder)}
+                                disabled={isSubmitting}
+                            >
+                                Eliminar
+                            </Button>
+                        </>
+                    ) : null}
+
+                    {!canManage && canRespond ? (
                         <>
                             <Button
                                 color="inherit"
                                 onClick={() => onDismiss(reminder)}
                                 disabled={isSubmitting}
                             >
-                                Descartar
+                                Descartar para mí
                             </Button>
 
                             <Button
@@ -286,7 +390,7 @@ export function ReminderDetailDialog({
                                 onClick={() => onMarkDone(reminder)}
                                 disabled={isSubmitting}
                             >
-                                Marcar como hecho
+                                Marcar hecho para mí
                             </Button>
                         </>
                     ) : null}

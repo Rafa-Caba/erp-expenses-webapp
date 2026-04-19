@@ -87,7 +87,12 @@ function RemindersToolbarFields({
     const handleStatusChange = (event: SelectChangeEvent<string>) => {
         const value = event.target.value;
 
-        if (value === "ALL" || value === "pending" || value === "done" || value === "dismissed") {
+        if (
+            value === "ALL" ||
+            value === "pending" ||
+            value === "in_progress" ||
+            value === "resolved"
+        ) {
             onChange({
                 ...filters,
                 statusFilter: value,
@@ -150,9 +155,11 @@ function RemindersToolbarFields({
                     <MenuItem value="pending">
                         {getReminderStatusLabel("pending")}
                     </MenuItem>
-                    <MenuItem value="done">{getReminderStatusLabel("done")}</MenuItem>
-                    <MenuItem value="dismissed">
-                        {getReminderStatusLabel("dismissed")}
+                    <MenuItem value="in_progress">
+                        {getReminderStatusLabel("in_progress")}
+                    </MenuItem>
+                    <MenuItem value="resolved">
+                        {getReminderStatusLabel("resolved")}
                     </MenuItem>
                 </Select>
             </FormControl>

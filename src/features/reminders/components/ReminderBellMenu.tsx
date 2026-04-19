@@ -24,9 +24,14 @@ import { useTheme } from "@mui/material/styles";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 
-import { useUpdateReminderStatusMutation } from "../hooks/useReminderMutations";
+import { useWorkspaceByIdQuery } from "../../workspaces/hooks/useWorkspaceByIdQuery";
+import {
+    useDeleteReminderMutation,
+    useMarkReminderViewedMutation,
+    useRespondToReminderMutation,
+} from "../hooks/useReminderMutations";
 import { useRemindersQuery } from "../hooks/useRemindersQuery";
-import type { ReminderRecord } from "../types/reminder.types";
+import type { ReminderMemberResponseRecord, ReminderRecord } from "../types/reminder.types";
 import { ReminderDetailDialog } from "./ReminderDetailDialog";
 
 type ReminderBellMenuProps = {
@@ -74,10 +79,10 @@ function getReminderPriorityColor(
     return "default";
 }
 
-function sortPendingReminders(reminders: ReminderRecord[]): ReminderRecord[] {
+function sortBellReminders(reminders: ReminderRecord[]): ReminderRecord[] {
     return [...reminders].sort((left, right) => {
-        const leftOverdue = left.status === "pending" && left.isOverdue;
-        const rightOverdue = right.status === "pending" && right.isOverdue;
+        const leftOverdue = left.status !== "resolved" && left.isOverdue;
+        const rightOverdue = right.status !== "resolved" && right.isOverdue;
 
         if (leftOverdue !== rightOverdue) {
             return Number(rightOverdue) - Number(leftOverdue);
@@ -90,10 +95,53 @@ function sortPendingReminders(reminders: ReminderRecord[]): ReminderRecord[] {
     });
 }
 
-function getPendingVisibleReminders(reminders: ReminderRecord[]): ReminderRecord[] {
+function getBellVisibleReminders(reminders: ReminderRecord[]): ReminderRecord[] {
     return reminders.filter(
-        (reminder) => reminder.isVisible && reminder.status === "pending"
+        (reminder) => reminder.isVisible && reminder.status !== "resolved"
     );
+}
+
+function getCurrentMemberResponse(
+    reminder: ReminderRecord,
+    currentMemberId: string | null
+): ReminderMemberResponseRecord | null {
+    if (!currentMemberId) {
+        return null;
+    }
+
+    return (
+        reminder.responses.find((response) => response.memberId === currentMemberId) ?? null
+    );
+}
+
+function canManageReminder(
+    reminder: ReminderRecord,
+    currentMemberId: string | null,
+    currentRole: string | null
+): boolean {
+    if (currentRole === "OWNER") {
+        return true;
+    }
+
+    if (!currentMemberId) {
+        return false;
+    }
+
+    return reminder.createdByMemberId === currentMemberId;
+}
+
+function canRespondToReminder(
+    reminder: ReminderRecord,
+    currentMemberId: string | null,
+    currentRole: string | null
+): boolean {
+    if (canManageReminder(reminder, currentMemberId, currentRole)) {
+        return false;
+    }
+
+    const currentResponse = getCurrentMemberResponse(reminder, currentMemberId);
+
+    return currentResponse?.status === "pending" && reminder.status !== "resolved";
 }
 
 function ReminderMenuItem({
@@ -150,6 +198,11 @@ function ReminderMenuItem({
                         ) : null}
                     </Stack>
                 </Stack>
+
+                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                    {reminder.responseSummary.totalResponded} de{" "}
+                    {reminder.responseSummary.totalRecipients} respondieron
+                </Typography>
 
                 {reminder.description ? (
                     <Typography
@@ -225,6 +278,11 @@ function ReminderDialogListItem({
                     {formatDate(reminder.dueDate)}
                 </Typography>
 
+                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                    {reminder.responseSummary.totalResponded} de{" "}
+                    {reminder.responseSummary.totalRecipients} respondieron
+                </Typography>
+
                 {reminder.description ? (
                     <Typography
                         variant="caption"
@@ -257,27 +315,49 @@ export function ReminderBellMenu({
         staleTime: 30_000,
         refetchInterval: 60_000,
     });
+    const workspaceQuery = useWorkspaceByIdQuery(workspaceId);
 
-    const updateReminderStatusMutation = useUpdateReminderStatusMutation();
+    const markReminderViewedMutation = useMarkReminderViewedMutation();
+    const respondToReminderMutation = useRespondToReminderMutation();
+    const deleteReminderMutation = useDeleteReminderMutation();
 
     const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
     const [mobileDialogOpen, setMobileDialogOpen] = React.useState(false);
     const [selectedReminder, setSelectedReminder] =
         React.useState<ReminderRecord | null>(null);
 
-    const pendingVisibleReminders = React.useMemo(
+    const currentMembership = workspaceQuery.data?.workspace.currentMembership ?? null;
+    const currentMemberId = currentMembership?.memberId ?? null;
+    const currentRole = currentMembership?.role ?? null;
+
+    const visibleReminders = React.useMemo(
         () =>
-            sortPendingReminders(
-                getPendingVisibleReminders(remindersQuery.data?.reminders ?? [])
+            sortBellReminders(
+                getBellVisibleReminders(remindersQuery.data?.reminders ?? [])
             ),
         [remindersQuery.data?.reminders]
     );
 
-    const desktopVisibleReminders = pendingVisibleReminders.slice(0, 6);
-    const mobileVisibleReminders = pendingVisibleReminders.slice(0, 10);
-    const badgeCount = pendingVisibleReminders.length;
+    const desktopVisibleReminders = visibleReminders.slice(0, 6);
+    const mobileVisibleReminders = visibleReminders.slice(0, 10);
+    const badgeCount = visibleReminders.length;
 
     const desktopMenuOpen = Boolean(anchorEl);
+
+    const isSubmitting =
+        markReminderViewedMutation.isPending ||
+        respondToReminderMutation.isPending ||
+        deleteReminderMutation.isPending;
+
+    const selectedCanManage =
+        selectedReminder !== null
+            ? canManageReminder(selectedReminder, currentMemberId, currentRole)
+            : false;
+
+    const selectedCanRespond =
+        selectedReminder !== null
+            ? canRespondToReminder(selectedReminder, currentMemberId, currentRole)
+            : false;
 
     const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
         if (isMobile) {
@@ -299,11 +379,31 @@ export function ReminderBellMenu({
     const handleOpenReminderDetail = (reminder: ReminderRecord) => {
         handleCloseDesktopMenu();
         handleCloseMobileDialog();
+
+        if (workspaceId) {
+            markReminderViewedMutation.mutate(
+                {
+                    workspaceId,
+                    reminderId: reminder._id,
+                },
+                {
+                    onSuccess: (response) => {
+                        setSelectedReminder(response.reminder);
+                    },
+                    onError: () => {
+                        setSelectedReminder(reminder);
+                    },
+                }
+            );
+
+            return;
+        }
+
         setSelectedReminder(reminder);
     };
 
     const handleCloseReminderDetail = () => {
-        if (updateReminderStatusMutation.isPending) {
+        if (isSubmitting) {
             return;
         }
 
@@ -317,20 +417,53 @@ export function ReminderBellMenu({
         navigate(remindersPath);
     };
 
+    const handleOpenReminderEdit = (reminder: ReminderRecord) => {
+        setSelectedReminder(null);
+        navigate(`${remindersPath}/${reminder._id}/edit`);
+    };
+
+    const handleDeleteReminder = (reminder: ReminderRecord) => {
+        if (!workspaceId) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `¿Seguro que deseas eliminar el reminder "${reminder.title}"?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        deleteReminderMutation.mutate(
+            {
+                workspaceId,
+                reminderId: reminder._id,
+            },
+            {
+                onSuccess: () => {
+                    setSelectedReminder(null);
+                },
+            }
+        );
+    };
+
     const handleMarkDone = (reminder: ReminderRecord) => {
         if (!workspaceId) {
             return;
         }
 
-        updateReminderStatusMutation.mutate(
+        respondToReminderMutation.mutate(
             {
                 workspaceId,
                 reminderId: reminder._id,
-                status: "done",
+                payload: {
+                    status: "done",
+                },
             },
             {
-                onSuccess: () => {
-                    setSelectedReminder(null);
+                onSuccess: (response) => {
+                    setSelectedReminder(response.reminder);
                 },
             }
         );
@@ -341,15 +474,17 @@ export function ReminderBellMenu({
             return;
         }
 
-        updateReminderStatusMutation.mutate(
+        respondToReminderMutation.mutate(
             {
                 workspaceId,
                 reminderId: reminder._id,
-                status: "dismissed",
+                payload: {
+                    status: "dismissed",
+                },
             },
             {
-                onSuccess: () => {
-                    setSelectedReminder(null);
+                onSuccess: (response) => {
+                    setSelectedReminder(response.reminder);
                 },
             }
         );
@@ -391,7 +526,7 @@ export function ReminderBellMenu({
                             Reminders
                         </Typography>
                         <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                            {pendingVisibleReminders.length} pendiente(s)
+                            {visibleReminders.length} activo(s)
                         </Typography>
                     </Box>
 
@@ -410,7 +545,7 @@ export function ReminderBellMenu({
                     ) : desktopVisibleReminders.length === 0 ? (
                         <Box sx={{ p: 2 }}>
                             <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                No hay reminders pendientes por ahora.
+                                No hay reminders activos por ahora.
                             </Typography>
                         </Box>
                     ) : [
@@ -421,11 +556,11 @@ export function ReminderBellMenu({
                                 onClick={handleOpenReminderDetail}
                             />
                         )),
-                        pendingVisibleReminders.length > desktopVisibleReminders.length ? (
+                        visibleReminders.length > desktopVisibleReminders.length ? (
                             <Box key="reminders-count-footer" sx={{ px: 2, pb: 1 }}>
                                 <Typography variant="caption" sx={{ opacity: 0.7 }}>
                                     Mostrando {desktopVisibleReminders.length} de{" "}
-                                    {pendingVisibleReminders.length} pendientes
+                                    {visibleReminders.length} activos
                                 </Typography>
                             </Box>
                         ) : null,
@@ -456,7 +591,7 @@ export function ReminderBellMenu({
                     <DialogContent dividers>
                         <Stack spacing={1.5}>
                             <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                {pendingVisibleReminders.length} pendiente(s)
+                                {visibleReminders.length} activo(s)
                             </Typography>
 
                             {remindersQuery.isLoading ? (
@@ -469,7 +604,7 @@ export function ReminderBellMenu({
                                 </Alert>
                             ) : mobileVisibleReminders.length === 0 ? (
                                 <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                    No hay reminders pendientes por ahora.
+                                    No hay reminders activos por ahora.
                                 </Typography>
                             ) : (
                                 <Stack spacing={1}>
@@ -481,11 +616,10 @@ export function ReminderBellMenu({
                                         />
                                     ))}
 
-                                    {pendingVisibleReminders.length >
-                                        mobileVisibleReminders.length ? (
+                                    {visibleReminders.length > mobileVisibleReminders.length ? (
                                         <Typography variant="caption" sx={{ opacity: 0.7 }}>
                                             Mostrando {mobileVisibleReminders.length} de{" "}
-                                            {pendingVisibleReminders.length} pendientes
+                                            {visibleReminders.length} activos
                                         </Typography>
                                     ) : null}
                                 </Stack>
@@ -526,8 +660,12 @@ export function ReminderBellMenu({
             <ReminderDetailDialog
                 reminder={selectedReminder}
                 open={selectedReminder !== null}
-                isSubmitting={updateReminderStatusMutation.isPending}
+                isSubmitting={isSubmitting}
+                canManage={selectedCanManage}
+                canRespond={selectedCanRespond}
                 onClose={handleCloseReminderDetail}
+                onEdit={handleOpenReminderEdit}
+                onDelete={handleDeleteReminder}
                 onMarkDone={handleMarkDone}
                 onDismiss={handleDismiss}
                 onOpenReminders={handleOpenRemindersScreen}

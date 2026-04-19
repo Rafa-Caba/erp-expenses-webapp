@@ -1,4 +1,4 @@
-// src/reminders/services/reminder.service.ts
+// src/features/reminders/services/reminder.service.ts
 
 import type { AxiosInstance } from "axios";
 
@@ -6,6 +6,7 @@ import type {
     CreateReminderPayload,
     ReminderResponse,
     RemindersResponse,
+    RespondToReminderPayload,
     UpdateReminderPayload,
 } from "../types/reminder.types";
 
@@ -45,6 +46,30 @@ export function createReminderService(apiClient: AxiosInstance) {
             return apiClient
                 .patch<ReminderResponse>(
                     `/api/workspaces/${workspaceId}/reminders/${reminderId}`,
+                    payload
+                )
+                .then(({ data }) => data);
+        },
+
+        markReminderAsViewed(
+            workspaceId: string,
+            reminderId: string
+        ): Promise<ReminderResponse> {
+            return apiClient
+                .patch<ReminderResponse>(
+                    `/api/workspaces/${workspaceId}/reminders/${reminderId}/view`
+                )
+                .then(({ data }) => data);
+        },
+
+        respondToReminder(
+            workspaceId: string,
+            reminderId: string,
+            payload: RespondToReminderPayload
+        ): Promise<ReminderResponse> {
+            return apiClient
+                .patch<ReminderResponse>(
+                    `/api/workspaces/${workspaceId}/reminders/${reminderId}/respond`,
                     payload
                 )
                 .then(({ data }) => data);

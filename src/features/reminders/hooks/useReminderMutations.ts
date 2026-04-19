@@ -9,7 +9,7 @@ import { createReminderService } from "../services/reminder.service";
 import type {
     CreateReminderPayload,
     ReminderResponse,
-    ReminderStatus,
+    RespondToReminderPayload,
     UpdateReminderPayload,
 } from "../types/reminder.types";
 
@@ -31,11 +31,37 @@ type DeleteReminderMutationPayload = {
     reminderId: string;
 };
 
-type UpdateReminderStatusMutationPayload = {
+type MarkReminderViewedMutationPayload = {
     workspaceId: string;
     reminderId: string;
-    status: Extract<ReminderStatus, "done" | "dismissed">;
 };
+
+type RespondToReminderMutationPayload = {
+    workspaceId: string;
+    reminderId: string;
+    payload: RespondToReminderPayload;
+};
+
+function invalidateReminderQueries(
+    queryClient: ReturnType<typeof useQueryClient>,
+    response: ReminderResponse
+): void {
+    queryClient.invalidateQueries({
+        queryKey: reminderQueryKeys.all,
+    });
+
+    queryClient.invalidateQueries({
+        queryKey: dashboardQueryKeys.all,
+    });
+
+    queryClient.setQueryData(
+        reminderQueryKeys.detail(
+            response.reminder.workspaceId,
+            response.reminder._id
+        ),
+        response.reminder
+    );
+}
 
 export function useCreateReminderMutation() {
     const queryClient = useQueryClient();
@@ -44,21 +70,7 @@ export function useCreateReminderMutation() {
         mutationFn: ({ workspaceId, payload }) =>
             reminderService.createReminder(workspaceId, payload),
         onSuccess: (response) => {
-            queryClient.invalidateQueries({
-                queryKey: reminderQueryKeys.all,
-            });
-
-            queryClient.invalidateQueries({
-                queryKey: dashboardQueryKeys.all,
-            });
-
-            queryClient.setQueryData(
-                reminderQueryKeys.detail(
-                    response.reminder.workspaceId,
-                    response.reminder._id
-                ),
-                response.reminder
-            );
+            invalidateReminderQueries(queryClient, response);
         },
     });
 }
@@ -70,41 +82,32 @@ export function useUpdateReminderMutation() {
         mutationFn: ({ workspaceId, reminderId, payload }) =>
             reminderService.updateReminder(workspaceId, reminderId, payload),
         onSuccess: (response) => {
-            queryClient.invalidateQueries({
-                queryKey: reminderQueryKeys.all,
-            });
-
-            queryClient.invalidateQueries({
-                queryKey: dashboardQueryKeys.all,
-            });
-
-            queryClient.setQueryData(
-                reminderQueryKeys.detail(
-                    response.reminder.workspaceId,
-                    response.reminder._id
-                ),
-                response.reminder
-            );
+            invalidateReminderQueries(queryClient, response);
         },
     });
 }
 
-export function useUpdateReminderStatusMutation() {
-    const updateReminderMutation = useUpdateReminderMutation();
+export function useMarkReminderViewedMutation() {
+    const queryClient = useQueryClient();
 
-    return useMutation<
-        ReminderResponse,
-        Error,
-        UpdateReminderStatusMutationPayload
-    >({
-        mutationFn: ({ workspaceId, reminderId, status }) =>
-            updateReminderMutation.mutateAsync({
-                workspaceId,
-                reminderId,
-                payload: {
-                    status,
-                },
-            }),
+    return useMutation<ReminderResponse, Error, MarkReminderViewedMutationPayload>({
+        mutationFn: ({ workspaceId, reminderId }) =>
+            reminderService.markReminderAsViewed(workspaceId, reminderId),
+        onSuccess: (response) => {
+            invalidateReminderQueries(queryClient, response);
+        },
+    });
+}
+
+export function useRespondToReminderMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<ReminderResponse, Error, RespondToReminderMutationPayload>({
+        mutationFn: ({ workspaceId, reminderId, payload }) =>
+            reminderService.respondToReminder(workspaceId, reminderId, payload),
+        onSuccess: (response) => {
+            invalidateReminderQueries(queryClient, response);
+        },
     });
 }
 
@@ -115,21 +118,7 @@ export function useDeleteReminderMutation() {
         mutationFn: ({ workspaceId, reminderId }) =>
             reminderService.deleteReminder(workspaceId, reminderId),
         onSuccess: (response) => {
-            queryClient.invalidateQueries({
-                queryKey: reminderQueryKeys.all,
-            });
-
-            queryClient.invalidateQueries({
-                queryKey: dashboardQueryKeys.all,
-            });
-
-            queryClient.setQueryData(
-                reminderQueryKeys.detail(
-                    response.reminder.workspaceId,
-                    response.reminder._id
-                ),
-                response.reminder
-            );
+            invalidateReminderQueries(queryClient, response);
         },
     });
 }

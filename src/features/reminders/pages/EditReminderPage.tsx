@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
 import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 import { Page } from "../../../shared/ui/Page/Page";
 import { ReminderForm, type ReminderFormValues } from "../components/ReminderForm";
 import { useReminderByIdQuery } from "../hooks/useReminderByIdQuery";
@@ -31,9 +32,33 @@ function toDateInputValue(value: string): string {
     return value.slice(0, 10);
 }
 
-function toReminderFormValues(reminder: ReminderRecord): ReminderFormValues {
-    return {
-        memberId: reminder.memberId ?? "",
+function EditReminderFormBridge({
+    reminder,
+    workspaceId,
+    isSubmitting,
+    submitErrorMessage,
+    onSubmit,
+    onCancel,
+}: {
+    reminder: ReminderRecord;
+    workspaceId: string;
+    isSubmitting: boolean;
+    submitErrorMessage: string | null;
+    onSubmit: (values: ReminderFormValues) => void;
+    onCancel: () => void;
+}) {
+    const singleRecipientId =
+        reminder.recipientMemberIds.length === 1
+            ? reminder.recipientMemberIds[0]
+            : null;
+
+    const singleRecipientLabel = useWorkspaceMemberLabelById(
+        workspaceId,
+        singleRecipientId
+    ).label;
+
+    const initialValues: ReminderFormValues = {
+        targetMemberId: singleRecipientId ?? "",
         title: reminder.title,
         description: reminder.description ?? "",
         type: reminder.type,
@@ -42,16 +67,39 @@ function toReminderFormValues(reminder: ReminderRecord): ReminderFormValues {
         dueDate: toDateInputValue(reminder.dueDate),
         isRecurring: reminder.isRecurring,
         recurrenceRule: reminder.recurrenceRule ?? "",
-        status: reminder.status,
         priority: reminder.priority ?? "",
         channel: reminder.channel,
         isVisible: reminder.isVisible,
     };
+
+    const subtitle =
+        reminder.recipientMemberIds.length === 1
+            ? `Actualmente dirigido a ${singleRecipientLabel}.`
+            : `Actualmente dirigido a ${reminder.responseSummary.totalRecipients} miembros.`;
+
+    return (
+        <>
+            <Alert severity="info" sx={{ mb: 3 }}>
+                {subtitle} Si seleccionas un miembro, el reminder quedará individual.
+                Si lo dejas vacío, quedará para todos los miembros activos.
+            </Alert>
+
+            <ReminderForm
+                mode="edit"
+                workspaceId={workspaceId}
+                initialValues={initialValues}
+                isSubmitting={isSubmitting}
+                submitErrorMessage={submitErrorMessage}
+                onSubmit={onSubmit}
+                onCancel={onCancel}
+            />
+        </>
+    );
 }
 
 function toUpdateReminderPayload(values: ReminderFormValues): UpdateReminderPayload {
     return {
-        memberId: values.memberId.trim() || null,
+        targetMemberId: values.targetMemberId.trim() || null,
         title: values.title.trim(),
         description: values.description.trim() || null,
         type: values.type,
@@ -62,7 +110,6 @@ function toUpdateReminderPayload(values: ReminderFormValues): UpdateReminderPayl
         dueDate: values.dueDate,
         isRecurring: values.isRecurring,
         recurrenceRule: values.isRecurring ? values.recurrenceRule.trim() || null : null,
-        status: values.status,
         priority: values.priority || null,
         channel: values.channel,
         isVisible: values.isVisible,
@@ -134,8 +181,6 @@ export function EditReminderPage() {
         )
         : null;
 
-    const initialValues = toReminderFormValues(reminderQuery.data);
-
     const handleSubmit = (values: ReminderFormValues) => {
         const payload = toUpdateReminderPayload(values);
 
@@ -160,12 +205,11 @@ export function EditReminderPage() {
     return (
         <Page
             title="Editar reminder"
-            subtitle="Actualiza recordatorio, fecha, recurrencia y vínculo relacionado."
+            subtitle="Actualiza recordatorio, fecha, recurrencia y audiencia."
         >
-            <ReminderForm
-                mode="edit"
+            <EditReminderFormBridge
+                reminder={reminderQuery.data}
                 workspaceId={workspaceId}
-                initialValues={initialValues}
                 isSubmitting={updateReminderMutation.isPending}
                 submitErrorMessage={submitErrorMessage}
                 onSubmit={handleSubmit}

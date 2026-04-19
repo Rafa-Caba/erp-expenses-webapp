@@ -15,9 +15,9 @@ export function ReminderStatusChip({
     const color =
         status === "pending"
             ? "warning"
-            : status === "done"
-                ? "success"
-                : "default";
+            : status === "in_progress"
+                ? "info"
+                : "success";
 
     return (
         <Chip

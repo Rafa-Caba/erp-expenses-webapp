@@ -186,11 +186,19 @@ export function buildDashboardRemindersSummary(
         })
         .slice(0, 5);
 
+    const doneCount = scopedReminders.reduce((total, reminder) => {
+        return total + reminder.responseSummary.totalDone;
+    }, 0);
+
+    const dismissedCount = scopedReminders.reduce((total, reminder) => {
+        return total + reminder.responseSummary.totalDismissed;
+    }, 0);
+
     return {
         scopedTotalCount: scopedReminders.length,
         pendingCount: scopedReminders.filter((reminder) => reminder.status === "pending").length,
-        doneCount: scopedReminders.filter((reminder) => reminder.status === "done").length,
-        dismissedCount: scopedReminders.filter((reminder) => reminder.status === "dismissed").length,
+        doneCount,
+        dismissedCount,
         overdueCount: visibleReminders.filter(
             (reminder) => reminder.status === "pending" && reminder.isOverdue
         ).length,

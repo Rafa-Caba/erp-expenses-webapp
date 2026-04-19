@@ -23,19 +23,17 @@ import type {
     ReminderChannel,
     ReminderPriority,
     ReminderRelatedEntityType,
-    ReminderStatus,
     ReminderType,
 } from "../types/reminder.types";
 import {
     getReminderChannelLabel,
     getReminderPriorityLabel,
-    getReminderStatusLabel,
     getReminderTypeLabel,
 } from "../utils/reminder-labels";
 import { ReminderRelatedEntityField } from "./ReminderRelatedEntityField";
 
 export type ReminderFormValues = {
-    memberId: string;
+    targetMemberId: string;
     title: string;
     description: string;
     type: ReminderType;
@@ -44,7 +42,6 @@ export type ReminderFormValues = {
     dueDate: string;
     isRecurring: boolean;
     recurrenceRule: string;
-    status: ReminderStatus;
     priority: ReminderPriority | "";
     channel: ReminderChannel;
     isVisible: boolean;
@@ -61,7 +58,6 @@ type ReminderFormErrors = Partial<Record<ReminderFormField, string>>;
 type ReminderFormTextField =
     | "title"
     | "description"
-    | "dueDate"
     | "recurrenceRule";
 
 type ReminderFormProps = {
@@ -137,17 +133,6 @@ export function ReminderForm({
         }
     };
 
-    const handleStatusChange = (event: SelectChangeEvent<string>) => {
-        const value = event.target.value;
-
-        if (value === "pending" || value === "done" || value === "dismissed") {
-            setValues((currentValues) => ({
-                ...currentValues,
-                status: value,
-            }));
-        }
-    };
-
     const handlePriorityChange = (event: SelectChangeEvent<string>) => {
         const value = event.target.value;
 
@@ -175,10 +160,10 @@ export function ReminderForm({
         }
     };
 
-    const handleMemberChange = (value: string) => {
+    const handleTargetMemberChange = (value: string) => {
         setValues((currentValues) => ({
             ...currentValues,
-            memberId: value,
+            targetMemberId: value,
         }));
     };
 
@@ -247,8 +232,9 @@ export function ReminderForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Define recordatorio, fecha límite, recurrencia y vínculo
-                                opcional con otra entidad del workspace.
+                                Define el recordatorio, la fecha límite, la recurrencia y
+                                opcionalmente a quién va dirigido. Si no seleccionas un miembro,
+                                se enviará a todos los miembros activos del workspace.
                             </Typography>
                         </Box>
 
@@ -317,28 +303,6 @@ export function ReminderForm({
 
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <FormControl fullWidth>
-                                    <InputLabel id="reminder-status-label">Estado</InputLabel>
-                                    <Select
-                                        labelId="reminder-status-label"
-                                        label="Estado"
-                                        value={values.status}
-                                        onChange={handleStatusChange}
-                                    >
-                                        <MenuItem value="pending">
-                                            {getReminderStatusLabel("pending")}
-                                        </MenuItem>
-                                        <MenuItem value="done">
-                                            {getReminderStatusLabel("done")}
-                                        </MenuItem>
-                                        <MenuItem value="dismissed">
-                                            {getReminderStatusLabel("dismissed")}
-                                        </MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <FormControl fullWidth>
                                     <InputLabel id="reminder-priority-label">
                                         Prioridad
                                     </InputLabel>
@@ -386,15 +350,15 @@ export function ReminderForm({
                                 </FormControl>
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 6 }}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <WorkspaceMemberSelect
                                     workspaceId={workspaceId}
-                                    value={values.memberId}
-                                    onChange={handleMemberChange}
-                                    label="Miembro"
-                                    helperText="Opcional. Miembro relacionado con el reminder."
+                                    value={values.targetMemberId}
+                                    onChange={handleTargetMemberChange}
+                                    label="Dirigido a"
+                                    helperText="Opcional. Si lo dejas vacío, el reminder irá para todos los miembros activos."
                                     allowEmpty
-                                    emptyOptionLabel="Sin miembro específico"
+                                    emptyOptionLabel="Todos los miembros"
                                     disabled={isSubmitting}
                                 />
                             </Grid>
@@ -455,11 +419,19 @@ export function ReminderForm({
                             spacing={2}
                             justifyContent="flex-end"
                         >
-                            <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
+                            <Button
+                                variant="outlined"
+                                onClick={onCancel}
+                                disabled={isSubmitting}
+                            >
                                 Cancelar
                             </Button>
 
-                            <Button type="submit" variant="contained" disabled={isSubmitting}>
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                disabled={isSubmitting}
+                            >
                                 {mode === "create" ? "Crear reminder" : "Guardar cambios"}
                             </Button>
                         </Stack>

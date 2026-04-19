@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 import type { ReminderRecord } from "../types/reminder.types";
 import {
+    getReminderAudienceLabel,
     getReminderChannelLabel,
     getReminderPriorityLabel,
     getReminderRelatedEntityTypeLabel,
@@ -24,8 +25,13 @@ import { ReminderTypeChip } from "./ReminderTypeChip";
 type ReminderCardProps = {
     reminder: ReminderRecord;
     isSelected: boolean;
+    canManage: boolean;
+    canRespond: boolean;
+    isResponding: boolean;
     onEdit: (reminder: ReminderRecord) => void;
     onDelete: (reminder: ReminderRecord) => void;
+    onMarkDone: (reminder: ReminderRecord) => void;
+    onDismiss: (reminder: ReminderRecord) => void;
 };
 
 function formatDate(value: string): string {
@@ -43,13 +49,33 @@ function getVisibilityLabel(isVisible: boolean): string {
 export function ReminderCard({
     reminder,
     isSelected,
+    canManage,
+    canRespond,
+    isResponding,
     onEdit,
     onDelete,
+    onMarkDone,
+    onDismiss,
 }: ReminderCardProps) {
-    const memberLabel = useWorkspaceMemberLabelById(
+    const singleRecipientId =
+        reminder.recipientMemberIds.length === 1
+            ? reminder.recipientMemberIds[0]
+            : null;
+
+    const singleRecipientLabel = useWorkspaceMemberLabelById(
         reminder.workspaceId,
-        reminder.memberId
+        singleRecipientId
     ).label;
+
+    const creatorLabel = useWorkspaceMemberLabelById(
+        reminder.workspaceId,
+        reminder.createdByMemberId
+    ).label;
+
+    const audienceLabel =
+        reminder.recipientMemberIds.length === 1
+            ? singleRecipientLabel
+            : `${getReminderAudienceLabel(reminder.recipientMemberIds.length)} (${reminder.responseSummary.totalRecipients})`;
 
     return (
         <Card
@@ -74,7 +100,7 @@ export function ReminderCard({
                     {reminder.isRecurring ? (
                         <Chip size="small" variant="outlined" label="Recurrente" />
                     ) : null}
-                    {reminder.isOverdue && reminder.status === "pending" ? (
+                    {reminder.isOverdue && reminder.status !== "resolved" ? (
                         <Chip size="small" color="error" label="Vencido" />
                     ) : null}
                 </Stack>
@@ -101,7 +127,23 @@ export function ReminderCard({
 
                 <Stack spacing={0.75}>
                     <Typography variant="body2">
-                        <strong>Miembro:</strong> {memberLabel}
+                        <strong>Creado por:</strong> {creatorLabel}
+                    </Typography>
+
+                    <Typography variant="body2">
+                        <strong>Dirigido a:</strong> {audienceLabel}
+                    </Typography>
+
+                    <Typography variant="body2">
+                        <strong>Progreso:</strong>{" "}
+                        {reminder.responseSummary.totalResponded} de{" "}
+                        {reminder.responseSummary.totalRecipients} respondieron
+                    </Typography>
+
+                    <Typography variant="body2">
+                        <strong>Vistos:</strong>{" "}
+                        {reminder.responseSummary.totalViewed} de{" "}
+                        {reminder.responseSummary.totalRecipients}
                     </Typography>
 
                     <Typography variant="body2">
@@ -135,18 +177,45 @@ export function ReminderCard({
             </CardContent>
 
             <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
-                <Button variant="outlined" fullWidth onClick={() => onEdit(reminder)}>
-                    Editar
-                </Button>
+                {canManage ? (
+                    <>
+                        <Button variant="outlined" fullWidth onClick={() => onEdit(reminder)}>
+                            Editar
+                        </Button>
 
-                <Button
-                    variant="outlined"
-                    color="warning"
-                    fullWidth
-                    onClick={() => onDelete(reminder)}
-                >
-                    Eliminar
-                </Button>
+                        <Button
+                            variant="outlined"
+                            color="warning"
+                            fullWidth
+                            onClick={() => onDelete(reminder)}
+                        >
+                            Eliminar
+                        </Button>
+                    </>
+                ) : null}
+
+                {!canManage && canRespond ? (
+                    <>
+                        <Button
+                            variant="outlined"
+                            color="inherit"
+                            fullWidth
+                            disabled={isResponding}
+                            onClick={() => onDismiss(reminder)}
+                        >
+                            Descartar
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            fullWidth
+                            disabled={isResponding}
+                            onClick={() => onMarkDone(reminder)}
+                        >
+                            Marcar hecho
+                        </Button>
+                    </>
+                ) : null}
             </CardActions>
         </Card>
     );
