@@ -17,8 +17,10 @@ import { UserVerificationChip } from "./UserVerificationChip";
 type AdminUserCardProps = {
     user: UserRecord;
     isSelected: boolean;
+    isResendingVerification: boolean;
     onEdit: (user: UserRecord) => void;
     onDelete: (user: UserRecord) => void;
+    onResendVerification: (user: UserRecord) => void;
 };
 
 function formatDate(value: string | null): string {
@@ -49,8 +51,10 @@ function getInitials(fullName: string): string {
 export function AdminUserCard({
     user,
     isSelected,
+    isResendingVerification,
     onEdit,
     onDelete,
+    onResendVerification,
 }: AdminUserCardProps) {
     return (
         <Card
@@ -117,7 +121,29 @@ export function AdminUserCard({
                 </Stack>
             </CardContent>
 
-            <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
+            <CardActions
+                sx={{
+                    px: 2,
+                    pb: 2,
+                    pt: 0,
+                    gap: 1,
+                    flexWrap: "wrap",
+                }}
+            >
+                {!user.isEmailVerified ? (
+                    <Button
+                        variant="outlined"
+                        color="warning"
+                        fullWidth
+                        disabled={isResendingVerification}
+                        onClick={() => onResendVerification(user)}
+                    >
+                        {isResendingVerification
+                            ? "Reenviando verificación..."
+                            : "Reenviar verificación"}
+                    </Button>
+                ) : null}
+
                 <Button variant="outlined" fullWidth onClick={() => onEdit(user)}>
                     Editar
                 </Button>

@@ -7,9 +7,16 @@ import { authQueryKeys } from "../api/auth.queryKeys";
 import { useAuthStore } from "../store/auth.store";
 import type {
     AuthSuccessResponse,
+    ForgotPasswordPayload,
+    ForgotPasswordResponse,
     LoginPayload,
     LogoutResponse,
     RegisterPayload,
+    ResendVerificationPayload,
+    ResendVerificationResponse,
+    ResetPasswordPayload,
+    VerifyEmailPayload,
+    VerifyEmailResponse,
 } from "../types/auth.types";
 import { createAuthService } from "../services/auth.service";
 
@@ -46,6 +53,41 @@ export function useRegisterMutation() {
 
             queryClient.setQueryData(authQueryKeys.me(), response.user);
         },
+    });
+}
+
+export function useVerifyEmailMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<VerifyEmailResponse, Error, VerifyEmailPayload>({
+        mutationFn: (payload) => authService.verifyEmail(payload),
+        onSuccess: (response) => {
+            const currentUser = useAuthStore.getState().user;
+
+            if (currentUser && currentUser.id === response.user.id) {
+                useAuthStore.getState().setUser(response.user);
+            }
+
+            queryClient.setQueryData(authQueryKeys.me(), response.user);
+        },
+    });
+}
+
+export function useResendVerificationMutation() {
+    return useMutation<ResendVerificationResponse, Error, ResendVerificationPayload>({
+        mutationFn: (payload) => authService.resendVerificationEmail(payload),
+    });
+}
+
+export function useForgotPasswordMutation() {
+    return useMutation<ForgotPasswordResponse, Error, ForgotPasswordPayload>({
+        mutationFn: (payload) => authService.forgotPassword(payload),
+    });
+}
+
+export function useResetPasswordMutation() {
+    return useMutation<LogoutResponse, Error, ResetPasswordPayload>({
+        mutationFn: (payload) => authService.resetPassword(payload),
     });
 }
 

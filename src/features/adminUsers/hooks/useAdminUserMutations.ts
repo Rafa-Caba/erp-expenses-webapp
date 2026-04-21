@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "../../../shared/api/apiClient";
+import { createAuthService } from "../../auth/services/auth.service";
+import type { ResendVerificationResponse } from "../../auth/types/auth.types";
 import { createUserService } from "../services/user.service";
 import { userQueryKeys } from "../api/user.queryKeys";
 import type {
@@ -13,10 +15,15 @@ import type {
 } from "../types/user.types";
 
 const userService = createUserService(apiClient);
+const authService = createAuthService(apiClient);
 
 type UpdateAdminUserMutationPayload = {
     userId: string;
     payload: UpdateUserPayload;
+};
+
+type ResendAdminUserVerificationPayload = {
+    email: string;
 };
 
 export function useCreateAdminUserMutation() {
@@ -63,5 +70,14 @@ export function useDeleteAdminUserMutation() {
                 queryKey: userQueryKeys.detail(userId),
             });
         },
+    });
+}
+
+export function useResendAdminUserVerificationMutation() {
+    return useMutation<ResendVerificationResponse, Error, ResendAdminUserVerificationPayload>({
+        mutationFn: ({ email }) =>
+            authService.resendVerificationEmail({
+                email,
+            }),
     });
 }

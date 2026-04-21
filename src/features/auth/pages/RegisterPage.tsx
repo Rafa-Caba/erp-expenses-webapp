@@ -45,6 +45,14 @@ function getRegisterErrorMessage(error: Error | null): string {
     return error.message || "No se pudo crear la cuenta.";
 }
 
+function buildVerificationSentPath(email: string): string {
+    const searchParams = new URLSearchParams({
+        email,
+    });
+
+    return `/auth/verify-email-sent?${searchParams.toString()}`;
+}
+
 export function RegisterPage() {
     const navigate = useNavigate();
     const registerMutation = useRegisterMutation();
@@ -61,9 +69,9 @@ export function RegisterPage() {
 
     const onSubmit = form.handleSubmit(async (values) => {
         const payload = toRegisterPayload(values);
+        const response = await registerMutation.mutateAsync(payload);
 
-        await registerMutation.mutateAsync(payload);
-        navigate("/app/personal/dashboard", { replace: true });
+        navigate(buildVerificationSentPath(response.user.email), { replace: true });
     });
 
     return (
@@ -80,7 +88,12 @@ export function RegisterPage() {
                         variant="text"
                         size="small"
                         onClick={() => navigate("/auth/login")}
-                        sx={{ minWidth: 0, p: 0, textTransform: "none", verticalAlign: "baseline" }}
+                        sx={{
+                            minWidth: 0,
+                            p: 0,
+                            textTransform: "none",
+                            verticalAlign: "baseline",
+                        }}
                     >
                         Iniciar sesión
                     </Button>

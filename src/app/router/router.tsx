@@ -9,6 +9,11 @@ import { HomeRedirect } from "./HomeRedirect";
 
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { RegisterPage } from "../../features/auth/pages/RegisterPage";
+import { VerifyEmailPage } from "../../features/auth/pages/VerifyEmailPage";
+import { ResendVerificationPage } from "../../features/auth/pages/ResendVerificationPage";
+import { VerificationEmailSentPage } from "../../features/auth/pages/VerificationEmailSentPage";
+import { ForgotPasswordPage } from "../../features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../../features/auth/pages/ResetPasswordPage";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { AdminUsersPage } from "../../features/adminUsers/pages/AdminUsersPage";
 import { NewAdminUserPage } from "../../features/adminUsers/pages/NewAdminUserPage";
@@ -62,6 +67,11 @@ export const router = createBrowserRouter([
 
     { path: "/auth/login", element: <LoginPage /> },
     { path: "/auth/register", element: <RegisterPage /> },
+    { path: "/auth/verify-email", element: <VerifyEmailPage /> },
+    { path: "/auth/verify-email-sent", element: <VerificationEmailSentPage /> },
+    { path: "/auth/resend-verification", element: <ResendVerificationPage /> },
+    { path: "/auth/forgot-password", element: <ForgotPasswordPage /> },
+    { path: "/auth/reset-password", element: <ResetPasswordPage /> },
 
     {
         path: "/app",

@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 
 import { useLoginMutation } from "../hooks/useAuthMutations";
 import { AuthPageCard } from "../components/AuthPageCard";
+import type { AuthSuccessResponse } from "../types/auth.types";
 
 const loginSchema = z.object({
     email: z.string().trim().email("Correo inválido"),
@@ -47,6 +48,22 @@ function getLoginErrorMessage(error: Error | null): string {
     return error.message || "No se pudo iniciar sesión. Revisa tus credenciales.";
 }
 
+function buildVerificationSentPath(email: string): string {
+    const searchParams = new URLSearchParams({
+        email,
+    });
+
+    return `/auth/verify-email-sent?${searchParams.toString()}`;
+}
+
+function resolvePostLoginRoute(response: AuthSuccessResponse, redirectTo: string): string {
+    if (!response.user.isEmailVerified) {
+        return buildVerificationSentPath(response.user.email);
+    }
+
+    return redirectTo;
+}
+
 export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -62,7 +79,7 @@ export function LoginPage() {
     });
 
     const onSubmit = form.handleSubmit(async (values) => {
-        await loginMutation.mutateAsync(values);
+        const response = await loginMutation.mutateAsync(values);
 
         const locationState =
             typeof location.state === "object" && location.state !== null
@@ -70,8 +87,9 @@ export function LoginPage() {
                 : null;
 
         const redirectTo = readRedirectPath(locationState) ?? "/app/personal/dashboard";
+        const nextRoute = resolvePostLoginRoute(response, redirectTo);
 
-        navigate(redirectTo, { replace: true });
+        navigate(nextRoute, { replace: true });
     });
 
     return (
@@ -80,17 +98,58 @@ export function LoginPage() {
             subtitle="Accede a tu panel personal y a tus workspaces de casa o negocio."
             errorMessage={loginMutation.isError ? getLoginErrorMessage(loginMutation.error) : null}
             footer={
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    ¿Aún no tienes cuenta?{" "}
-                    <Button
-                        variant="text"
-                        size="small"
-                        onClick={() => navigate("/auth/register")}
-                        sx={{ minWidth: 0, p: 0, textTransform: "none", verticalAlign: "baseline" }}
-                    >
-                        Crear cuenta
-                    </Button>
-                </Typography>
+                <Stack spacing={1}>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        ¿Aún no tienes cuenta?{" "}
+                        <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => navigate("/auth/register")}
+                            sx={{
+                                minWidth: 0,
+                                p: 0,
+                                textTransform: "none",
+                                verticalAlign: "baseline",
+                            }}
+                        >
+                            Crear cuenta
+                        </Button>
+                    </Typography>
+
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        ¿Olvidaste tu contraseña?{" "}
+                        <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => navigate("/auth/forgot-password")}
+                            sx={{
+                                minWidth: 0,
+                                p: 0,
+                                textTransform: "none",
+                                verticalAlign: "baseline",
+                            }}
+                        >
+                            Restablecer
+                        </Button>
+                    </Typography>
+
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        ¿No te llegó el correo de verificación?{" "}
+                        <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => navigate("/auth/resend-verification")}
+                            sx={{
+                                minWidth: 0,
+                                p: 0,
+                                textTransform: "none",
+                                verticalAlign: "baseline",
+                            }}
+                        >
+                            Reenviarlo
+                        </Button>
+                    </Typography>
+                </Stack>
             }
         >
             <Box

@@ -16,7 +16,10 @@ import { AdminUserCard } from "../components/AdminUserCard";
 import { AdminUsersEmptyState } from "../components/AdminUsersEmptyState";
 import { AdminUsersPagination } from "../components/AdminUsersPagination";
 import { AdminUsersToolbar } from "../components/AdminUsersToolbar";
-import { useDeleteAdminUserMutation } from "../hooks/useAdminUserMutations";
+import {
+    useDeleteAdminUserMutation,
+    useResendAdminUserVerificationMutation,
+} from "../hooks/useAdminUserMutations";
 import { useAdminUsersQuery } from "../hooks/useAdminUsersQuery";
 import { useAdminUsersStore } from "../store/adminUsers.store";
 import type { ListUsersQuery, UserRecord } from "../types/user.types";
@@ -84,6 +87,9 @@ export function AdminUsersPage() {
 
     const adminUsersQuery = useAdminUsersQuery(queryParams);
     const deleteAdminUserMutation = useDeleteAdminUserMutation();
+    const resendVerificationMutation = useResendAdminUserVerificationMutation();
+
+    const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null);
 
     const users = adminUsersQuery.data?.items ?? [];
     const pagination =
@@ -94,6 +100,7 @@ export function AdminUsersPage() {
 
     const handleResetFilters = React.useCallback(() => {
         resetAdminUsersUi();
+        setFeedbackMessage(null);
     }, [resetAdminUsersUi]);
 
     const handleEditUser = React.useCallback(
@@ -114,10 +121,30 @@ export function AdminUsersPage() {
                 return;
             }
 
+            setFeedbackMessage(null);
             setSelectedUserId(user.id);
             deleteAdminUserMutation.mutate(user.id);
         },
         [deleteAdminUserMutation, setSelectedUserId]
+    );
+
+    const handleResendVerification = React.useCallback(
+        (user: UserRecord) => {
+            setFeedbackMessage(null);
+            setSelectedUserId(user.id);
+
+            resendVerificationMutation.mutate(
+                {
+                    email: user.email,
+                },
+                {
+                    onSuccess: (response) => {
+                        setFeedbackMessage(response.message);
+                    },
+                }
+            );
+        },
+        [resendVerificationMutation, setSelectedUserId]
     );
 
     const handlePageChange = React.useCallback(
@@ -146,10 +173,7 @@ export function AdminUsersPage() {
                     Esta vista es global y no depende de un workspace específico.
                 </Typography>
 
-                <Button
-                    variant="contained"
-                    onClick={() => navigate("/app/admin/users/new")}
-                >
+                <Button variant="contained" onClick={() => navigate("/app/admin/users/new")}>
                     Nuevo usuario
                 </Button>
             </Stack>
@@ -166,6 +190,17 @@ export function AdminUsersPage() {
                 onLimitChange={setLimit}
                 onResetFilters={handleResetFilters}
             />
+
+            {feedbackMessage ? <Alert severity="success">{feedbackMessage}</Alert> : null}
+
+            {resendVerificationMutation.isError ? (
+                <Alert severity="error">
+                    {getUserErrorMessage(
+                        resendVerificationMutation.error,
+                        "No se pudo reenviar el correo de verificación."
+                    )}
+                </Alert>
+            ) : null}
 
             {deleteAdminUserMutation.isError ? (
                 <Alert severity="error">
@@ -187,9 +222,7 @@ export function AdminUsersPage() {
                     <Stack direction="row" spacing={2} alignItems="center">
                         <CircularProgress />
                         <Box>
-                            <Typography sx={{ fontWeight: 700 }}>
-                                Cargando usuarios…
-                            </Typography>
+                            <Typography sx={{ fontWeight: 700 }}>Cargando usuarios…</Typography>
                             <Typography variant="body2" sx={{ opacity: 0.8 }}>
                                 Obteniendo usuarios globales del sistema.
                             </Typography>
@@ -207,18 +240,14 @@ export function AdminUsersPage() {
                 </Alert>
             ) : null}
 
-            {!adminUsersQuery.isLoading &&
-                !adminUsersQuery.isError &&
-                users.length === 0 ? (
+            {!adminUsersQuery.isLoading && !adminUsersQuery.isError && users.length === 0 ? (
                 <AdminUsersEmptyState
                     hasFilters={hasFilters}
                     onClearFilters={handleResetFilters}
                 />
             ) : null}
 
-            {!adminUsersQuery.isLoading &&
-                !adminUsersQuery.isError &&
-                users.length > 0 ? (
+            {!adminUsersQuery.isLoading && !adminUsersQuery.isError && users.length > 0 ? (
                 <>
                     <Grid container spacing={2}>
                         {users.map((user) => (
@@ -226,8 +255,13 @@ export function AdminUsersPage() {
                                 <AdminUserCard
                                     user={user}
                                     isSelected={selectedUserId === user.id}
+                                    isResendingVerification={
+                                        resendVerificationMutation.isPending &&
+                                        selectedUserId === user.id
+                                    }
                                     onEdit={handleEditUser}
                                     onDelete={handleDeleteUser}
+                                    onResendVerification={handleResendVerification}
                                 />
                             </Grid>
                         ))}
