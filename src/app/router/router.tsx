@@ -14,6 +14,7 @@ import { ResendVerificationPage } from "../../features/auth/pages/ResendVerifica
 import { VerificationEmailSentPage } from "../../features/auth/pages/VerificationEmailSentPage";
 import { ForgotPasswordPage } from "../../features/auth/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../../features/auth/pages/ResetPasswordPage";
+import { ForceChangePasswordPage } from "../../features/auth/pages/ForceChangePasswordPage";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { AdminUsersPage } from "../../features/adminUsers/pages/AdminUsersPage";
 import { NewAdminUserPage } from "../../features/adminUsers/pages/NewAdminUserPage";
@@ -77,6 +78,10 @@ export const router = createBrowserRouter([
         path: "/app",
         element: <ProtectedLayout />,
         children: [
+            {
+                path: "force-change-password",
+                element: <ForceChangePasswordPage />,
+            },
             {
                 element: <AppShell />,
                 children: [

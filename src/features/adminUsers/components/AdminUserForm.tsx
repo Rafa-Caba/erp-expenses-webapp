@@ -11,12 +11,16 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormHelperText from "@mui/material/FormHelperText";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { type SelectChangeEvent } from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import type { UserRole } from "../../../shared/types/common.types";
 
@@ -112,9 +116,11 @@ export function AdminUserForm({
 }: AdminUserFormProps) {
     const [values, setValues] = React.useState<AdminUserFormValues>(initialValues);
     const [errors, setErrors] = React.useState<AdminUserFormErrors>({});
+    const [showPassword, setShowPassword] = React.useState(false);
 
     React.useEffect(() => {
         setValues(initialValues);
+        setShowPassword(false);
     }, [initialValues]);
 
     const handleTextChange =
@@ -170,7 +176,8 @@ export function AdminUserForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Administra usuarios globales del sistema desde la vista de administración.
+                                Administra usuarios globales del sistema desde la vista de
+                                administración.
                             </Typography>
                         </Box>
 
@@ -206,14 +213,40 @@ export function AdminUserForm({
                                 <Grid size={{ xs: 12, md: 6 }}>
                                     <TextField
                                         label="Contraseña"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         value={values.password}
                                         onChange={handleTextChange("password")}
                                         error={Boolean(errors.password)}
-                                        helperText={
-                                            errors.password ?? "Mínimo 8 caracteres."
-                                        }
+                                        helperText={errors.password ?? "Mínimo 8 caracteres."}
                                         fullWidth
+                                        slotProps={{
+                                            input: {
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            edge="end"
+                                                            onClick={() =>
+                                                                setShowPassword(
+                                                                    (currentValue) =>
+                                                                        !currentValue
+                                                                )
+                                                            }
+                                                            aria-label={
+                                                                showPassword
+                                                                    ? "Ocultar contraseña"
+                                                                    : "Mostrar contraseña"
+                                                            }
+                                                        >
+                                                            {showPassword ? (
+                                                                <VisibilityOffIcon />
+                                                            ) : (
+                                                                <VisibilityIcon />
+                                                            )}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            },
+                                        }}
                                     />
                                 </Grid>
                             ) : null}
@@ -297,11 +330,7 @@ export function AdminUserForm({
                                     Cancelar
                                 </Button>
 
-                                <Button
-                                    type="submit"
-                                    variant="contained"
-                                    disabled={isSubmitting}
-                                >
+                                <Button type="submit" variant="contained" disabled={isSubmitting}>
                                     {isSubmitting
                                         ? mode === "create"
                                             ? "Creando..."

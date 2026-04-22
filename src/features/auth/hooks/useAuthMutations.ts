@@ -7,6 +7,8 @@ import { authQueryKeys } from "../api/auth.queryKeys";
 import { useAuthStore } from "../store/auth.store";
 import type {
     AuthSuccessResponse,
+    ChangePasswordPayload,
+    ChangePasswordResponse,
     ForgotPasswordPayload,
     ForgotPasswordResponse,
     LoginPayload,
@@ -88,6 +90,18 @@ export function useForgotPasswordMutation() {
 export function useResetPasswordMutation() {
     return useMutation<LogoutResponse, Error, ResetPasswordPayload>({
         mutationFn: (payload) => authService.resetPassword(payload),
+    });
+}
+
+export function useChangePasswordMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<ChangePasswordResponse, Error, ChangePasswordPayload>({
+        mutationFn: (payload) => authService.changePassword(payload),
+        onSuccess: (response) => {
+            useAuthStore.getState().setUser(response.user);
+            queryClient.setQueryData(authQueryKeys.me(), response.user);
+        },
     });
 }
 

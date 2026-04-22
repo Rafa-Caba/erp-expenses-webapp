@@ -1,4 +1,4 @@
-// src/auth/auth.types.ts
+// src/features/auth/types/auth.types.ts
 
 import type { ApiMessageResponse } from "../../../shared/types/api.types";
 import type { IsoDateString, Nullable, UserRole } from "../../../shared/types/common.types";
@@ -17,6 +17,7 @@ export interface AuthUser {
     role: UserRole;
     isActive: boolean;
     isEmailVerified: boolean;
+    mustChangePassword: boolean;
     lastLoginAt: Nullable<IsoDateString>;
     createdAt: IsoDateString;
     updatedAt: IsoDateString;

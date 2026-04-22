@@ -12,6 +12,7 @@ export interface UserRecord {
     role: UserRole;
     isActive: boolean;
     isEmailVerified: boolean;
+    mustChangePassword: boolean;
     lastLoginAt: Nullable<IsoDateString>;
     createdAt: IsoDateString;
     updatedAt: IsoDateString;
@@ -26,6 +27,7 @@ export interface CreateUserPayload {
     role?: UserRole;
     isActive?: boolean;
     isEmailVerified?: boolean;
+    mustChangePassword?: boolean;
 }
 
 export interface UpdateUserPayload {
@@ -36,6 +38,15 @@ export interface UpdateUserPayload {
     role?: UserRole;
     isActive?: boolean;
     isEmailVerified?: boolean;
+}
+
+export interface AdminResetUserPasswordPayload {
+    newPassword: string;
+    mustChangePassword?: boolean;
+}
+
+export interface AdminResetUserPasswordResponse extends ApiMessageResponse {
+    user: UserRecord;
 }
 
 export interface ListUsersQuery {

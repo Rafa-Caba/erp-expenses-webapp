@@ -1,5 +1,6 @@
 // src/features/auth/pages/ResetPasswordPage.tsx
 
+import React from "react";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
@@ -9,9 +10,13 @@ import { useForm } from "react-hook-form";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { AuthPageCard } from "../components/AuthPageCard";
 import { useResetPasswordMutation } from "../hooks/useAuthMutations";
@@ -21,13 +26,10 @@ const resetPasswordSchema = z
         newPassword: z.string().min(6, "Mínimo 6 caracteres"),
         confirmPassword: z.string().min(6, "Mínimo 6 caracteres"),
     })
-    .refine(
-        (values) => values.newPassword === values.confirmPassword,
-        {
-            message: "Las contraseñas no coinciden",
-            path: ["confirmPassword"],
-        }
-    );
+    .refine((values) => values.newPassword === values.confirmPassword, {
+        message: "Las contraseñas no coinciden",
+        path: ["confirmPassword"],
+    });
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
@@ -43,6 +45,9 @@ export function ResetPasswordPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const resetPasswordMutation = useResetPasswordMutation();
+
+    const [showNewPassword, setShowNewPassword] = React.useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
     const token = useMemo(() => searchParams.get("token")?.trim() ?? "", [searchParams]);
 
@@ -103,22 +108,76 @@ export function ResetPasswordPage() {
                     >
                         <TextField
                             label="Nueva contraseña"
-                            type="password"
+                            type={showNewPassword ? "text" : "password"}
                             autoComplete="new-password"
                             {...form.register("newPassword")}
                             error={Boolean(form.formState.errors.newPassword)}
                             helperText={form.formState.errors.newPassword?.message}
                             disabled={isMissingToken}
+                            slotProps={{
+                                input: {
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                edge="end"
+                                                onClick={() =>
+                                                    setShowNewPassword(
+                                                        (currentValue) => !currentValue
+                                                    )
+                                                }
+                                                aria-label={
+                                                    showNewPassword
+                                                        ? "Ocultar nueva contraseña"
+                                                        : "Mostrar nueva contraseña"
+                                                }
+                                            >
+                                                {showNewPassword ? (
+                                                    <VisibilityOffIcon />
+                                                ) : (
+                                                    <VisibilityIcon />
+                                                )}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                },
+                            }}
                         />
 
                         <TextField
                             label="Confirmar contraseña"
-                            type="password"
+                            type={showConfirmPassword ? "text" : "password"}
                             autoComplete="new-password"
                             {...form.register("confirmPassword")}
                             error={Boolean(form.formState.errors.confirmPassword)}
                             helperText={form.formState.errors.confirmPassword?.message}
                             disabled={isMissingToken}
+                            slotProps={{
+                                input: {
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                edge="end"
+                                                onClick={() =>
+                                                    setShowConfirmPassword(
+                                                        (currentValue) => !currentValue
+                                                    )
+                                                }
+                                                aria-label={
+                                                    showConfirmPassword
+                                                        ? "Ocultar confirmación de contraseña"
+                                                        : "Mostrar confirmación de contraseña"
+                                                }
+                                            >
+                                                {showConfirmPassword ? (
+                                                    <VisibilityOffIcon />
+                                                ) : (
+                                                    <VisibilityIcon />
+                                                )}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                },
+                            }}
                         />
 
                         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
@@ -132,10 +191,7 @@ export function ResetPasswordPage() {
                                     : "Actualizar contraseña"}
                             </Button>
 
-                            <Button
-                                variant="outlined"
-                                onClick={() => navigate("/auth/login")}
-                            >
+                            <Button variant="outlined" onClick={() => navigate("/auth/login")}>
                                 Cancelar
                             </Button>
                         </Stack>

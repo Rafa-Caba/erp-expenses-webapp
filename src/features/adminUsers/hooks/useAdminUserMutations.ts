@@ -8,6 +8,8 @@ import type { ResendVerificationResponse } from "../../auth/types/auth.types";
 import { createUserService } from "../services/user.service";
 import { userQueryKeys } from "../api/user.queryKeys";
 import type {
+    AdminResetUserPasswordPayload,
+    AdminResetUserPasswordResponse,
     CreateUserPayload,
     DeleteUserResponse,
     UpdateUserPayload,
@@ -24,6 +26,11 @@ type UpdateAdminUserMutationPayload = {
 
 type ResendAdminUserVerificationPayload = {
     email: string;
+};
+
+type AdminResetUserPasswordMutationPayload = {
+    userId: string;
+    payload: AdminResetUserPasswordPayload;
 };
 
 export function useCreateAdminUserMutation() {
@@ -52,6 +59,28 @@ export function useUpdateAdminUserMutation() {
             });
 
             queryClient.setQueryData<UserRecord>(userQueryKeys.detail(user.id), user);
+        },
+    });
+}
+
+export function useAdminResetUserPasswordMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        AdminResetUserPasswordResponse,
+        Error,
+        AdminResetUserPasswordMutationPayload
+    >({
+        mutationFn: ({ userId, payload }) => userService.resetUserPassword(userId, payload),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries({
+                queryKey: userQueryKeys.all,
+            });
+
+            queryClient.setQueryData<UserRecord>(
+                userQueryKeys.detail(response.user.id),
+                response.user
+            );
         },
     });
 }

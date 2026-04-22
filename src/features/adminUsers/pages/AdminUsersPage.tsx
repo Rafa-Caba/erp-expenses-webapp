@@ -12,11 +12,14 @@ import Typography from "@mui/material/Typography";
 
 import { Page } from "../../../shared/ui/Page/Page";
 import type { PaginationMeta } from "../../../shared/types/api.types";
+import { AdminResetUserPasswordDialog } from "../components/AdminResetUserPasswordDialog";
+import type { AdminResetUserPasswordValues } from "../components/AdminResetUserPasswordDialog";
 import { AdminUserCard } from "../components/AdminUserCard";
 import { AdminUsersEmptyState } from "../components/AdminUsersEmptyState";
 import { AdminUsersPagination } from "../components/AdminUsersPagination";
 import { AdminUsersToolbar } from "../components/AdminUsersToolbar";
 import {
+    useAdminResetUserPasswordMutation,
     useDeleteAdminUserMutation,
     useResendAdminUserVerificationMutation,
 } from "../hooks/useAdminUserMutations";
@@ -88,8 +91,11 @@ export function AdminUsersPage() {
     const adminUsersQuery = useAdminUsersQuery(queryParams);
     const deleteAdminUserMutation = useDeleteAdminUserMutation();
     const resendVerificationMutation = useResendAdminUserVerificationMutation();
+    const resetUserPasswordMutation = useAdminResetUserPasswordMutation();
 
     const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null);
+    const [resetPasswordTargetUser, setResetPasswordTargetUser] =
+        React.useState<UserRecord | null>(null);
 
     const users = adminUsersQuery.data?.items ?? [];
     const pagination =
@@ -147,6 +153,48 @@ export function AdminUsersPage() {
         [resendVerificationMutation, setSelectedUserId]
     );
 
+    const handleOpenResetPasswordDialog = React.useCallback(
+        (user: UserRecord) => {
+            setFeedbackMessage(null);
+            setSelectedUserId(user.id);
+            setResetPasswordTargetUser(user);
+        },
+        [setSelectedUserId]
+    );
+
+    const handleCloseResetPasswordDialog = React.useCallback(() => {
+        if (resetUserPasswordMutation.isPending) {
+            return;
+        }
+
+        setResetPasswordTargetUser(null);
+    }, [resetUserPasswordMutation.isPending]);
+
+    const handleSubmitResetPassword = React.useCallback(
+        (values: AdminResetUserPasswordValues) => {
+            if (!resetPasswordTargetUser) {
+                return;
+            }
+
+            resetUserPasswordMutation.mutate(
+                {
+                    userId: resetPasswordTargetUser.id,
+                    payload: {
+                        newPassword: values.newPassword.trim(),
+                        mustChangePassword: values.mustChangePassword,
+                    },
+                },
+                {
+                    onSuccess: (response) => {
+                        setFeedbackMessage(response.message);
+                        setResetPasswordTargetUser(null);
+                    },
+                }
+            );
+        },
+        [resetPasswordTargetUser, resetUserPasswordMutation]
+    );
+
     const handlePageChange = React.useCallback(
         (nextPage: number) => {
             setPage(nextPage);
@@ -198,6 +246,15 @@ export function AdminUsersPage() {
                     {getUserErrorMessage(
                         resendVerificationMutation.error,
                         "No se pudo reenviar el correo de verificación."
+                    )}
+                </Alert>
+            ) : null}
+
+            {resetUserPasswordMutation.isError ? (
+                <Alert severity="error">
+                    {getUserErrorMessage(
+                        resetUserPasswordMutation.error,
+                        "No se pudo resetear la contraseña del usuario."
                     )}
                 </Alert>
             ) : null}
@@ -259,9 +316,14 @@ export function AdminUsersPage() {
                                         resendVerificationMutation.isPending &&
                                         selectedUserId === user.id
                                     }
+                                    isResettingPassword={
+                                        resetUserPasswordMutation.isPending &&
+                                        selectedUserId === user.id
+                                    }
                                     onEdit={handleEditUser}
                                     onDelete={handleDeleteUser}
                                     onResendVerification={handleResendVerification}
+                                    onResetPassword={handleOpenResetPasswordDialog}
                                 />
                             </Grid>
                         ))}
@@ -276,6 +338,22 @@ export function AdminUsersPage() {
                     />
                 </>
             ) : null}
+
+            <AdminResetUserPasswordDialog
+                open={Boolean(resetPasswordTargetUser)}
+                user={resetPasswordTargetUser}
+                isSubmitting={resetUserPasswordMutation.isPending}
+                submitErrorMessage={
+                    resetUserPasswordMutation.isError
+                        ? getUserErrorMessage(
+                            resetUserPasswordMutation.error,
+                            "No se pudo resetear la contraseña del usuario."
+                        )
+                        : null
+                }
+                onClose={handleCloseResetPasswordDialog}
+                onSubmit={handleSubmitResetPassword}
+            />
         </Page>
     );
 }

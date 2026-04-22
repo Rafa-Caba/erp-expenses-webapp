@@ -18,9 +18,11 @@ type AdminUserCardProps = {
     user: UserRecord;
     isSelected: boolean;
     isResendingVerification: boolean;
+    isResettingPassword: boolean;
     onEdit: (user: UserRecord) => void;
     onDelete: (user: UserRecord) => void;
     onResendVerification: (user: UserRecord) => void;
+    onResetPassword: (user: UserRecord) => void;
 };
 
 function formatDate(value: string | null): string {
@@ -52,9 +54,11 @@ export function AdminUserCard({
     user,
     isSelected,
     isResendingVerification,
+    isResettingPassword,
     onEdit,
     onDelete,
     onResendVerification,
+    onResetPassword,
 }: AdminUserCardProps) {
     return (
         <Card
@@ -108,6 +112,11 @@ export function AdminUserCard({
                     </Typography>
 
                     <Typography variant="body2">
+                        <strong>Debe cambiar contraseña:</strong>{" "}
+                        {user.mustChangePassword ? "Sí" : "No"}
+                    </Typography>
+
+                    <Typography variant="body2">
                         <strong>Último acceso:</strong> {formatDate(user.lastLoginAt)}
                     </Typography>
 
@@ -143,6 +152,18 @@ export function AdminUserCard({
                             : "Reenviar verificación"}
                     </Button>
                 ) : null}
+
+                <Button
+                    variant="outlined"
+                    color="secondary"
+                    fullWidth
+                    disabled={isResettingPassword}
+                    onClick={() => onResetPassword(user)}
+                >
+                    {isResettingPassword
+                        ? "Reseteando contraseña..."
+                        : "Reset contraseña"}
+                </Button>
 
                 <Button variant="outlined" fullWidth onClick={() => onEdit(user)}>
                     Editar

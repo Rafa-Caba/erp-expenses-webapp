@@ -9,6 +9,8 @@ import Typography from "@mui/material/Typography";
 import { ensureSession } from "../../features/auth/lib/auth.session";
 import { useAuthStore } from "../../features/auth/store/auth.store";
 
+const FORCE_CHANGE_PASSWORD_PATH = "/app/force-change-password";
+
 export function ProtectedLayout() {
     const location = useLocation();
 
@@ -80,7 +82,19 @@ export function ProtectedLayout() {
         );
     }
 
+    if (hasAuthenticatedSession && user?.mustChangePassword) {
+        if (location.pathname !== FORCE_CHANGE_PASSWORD_PATH) {
+            return <Navigate to={FORCE_CHANGE_PASSWORD_PATH} replace />;
+        }
+
+        return <Outlet />;
+    }
+
     if (hasAuthenticatedSession) {
+        if (location.pathname === FORCE_CHANGE_PASSWORD_PATH) {
+            return <Navigate to="/app/personal/dashboard" replace />;
+        }
+
         return <Outlet />;
     }
 

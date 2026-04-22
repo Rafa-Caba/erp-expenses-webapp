@@ -3,6 +3,8 @@
 import type { AxiosInstance } from "axios";
 
 import type {
+    AdminResetUserPasswordPayload,
+    AdminResetUserPasswordResponse,
     CreateUserPayload,
     DeleteUserResponse,
     ListUsersQuery,
@@ -36,6 +38,18 @@ export function createUserService(apiClient: AxiosInstance) {
         updateUser(userId: string, payload: UpdateUserPayload): Promise<UserRecord> {
             return apiClient
                 .patch<UserRecord>(`/api/users/${userId}`, payload)
+                .then(({ data }) => data);
+        },
+
+        resetUserPassword(
+            userId: string,
+            payload: AdminResetUserPasswordPayload
+        ): Promise<AdminResetUserPasswordResponse> {
+            return apiClient
+                .patch<AdminResetUserPasswordResponse>(
+                    `/api/users/${userId}/reset-password`,
+                    payload
+                )
                 .then(({ data }) => data);
         },
 

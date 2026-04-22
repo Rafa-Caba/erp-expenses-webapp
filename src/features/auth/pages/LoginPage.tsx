@@ -1,5 +1,6 @@
 // src/features/auth/pages/LoginPage.tsx
 
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,9 +8,13 @@ import { useForm } from "react-hook-form";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { useLoginMutation } from "../hooks/useAuthMutations";
 import { AuthPageCard } from "../components/AuthPageCard";
@@ -69,6 +74,7 @@ export function LoginPage() {
     const location = useLocation();
 
     const loginMutation = useLoginMutation();
+    const [showPassword, setShowPassword] = React.useState(false);
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
@@ -168,11 +174,36 @@ export function LoginPage() {
 
                 <TextField
                     label="Contraseña"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     {...form.register("password")}
                     error={Boolean(form.formState.errors.password)}
                     helperText={form.formState.errors.password?.message}
+                    slotProps={{
+                        input: {
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        edge="end"
+                                        onClick={() =>
+                                            setShowPassword((currentValue) => !currentValue)
+                                        }
+                                        aria-label={
+                                            showPassword
+                                                ? "Ocultar contraseña"
+                                                : "Mostrar contraseña"
+                                        }
+                                    >
+                                        {showPassword ? (
+                                            <VisibilityOffIcon />
+                                        ) : (
+                                            <VisibilityIcon />
+                                        )}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        },
+                    }}
                 />
 
                 <Stack direction="column" spacing={1}>

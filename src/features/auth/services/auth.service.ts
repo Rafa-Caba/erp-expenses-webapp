@@ -1,4 +1,4 @@
-// src/auth/auth.service.ts
+// src/features/auth/services/auth.service.ts
 
 import type { AxiosInstance } from "axios";
 
