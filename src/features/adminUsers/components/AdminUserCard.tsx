@@ -75,12 +75,12 @@ export function AdminUserCard({
                     <Avatar
                         src={user.avatarUrl ?? undefined}
                         alt={user.fullName}
-                        sx={{ width: 52, height: 52 }}
+                        sx={{ width: 80, height: 80 }}
                     >
                         {getInitials(user.fullName)}
                     </Avatar>
 
-                    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                    <Stack sx={{ minWidth: 0 }}>
                         <Typography variant="h6" sx={{ fontWeight: 800 }}>
                             {user.fullName}
                         </Typography>
@@ -132,7 +132,7 @@ export function AdminUserCard({
 
             <CardActions
                 sx={{
-                    px: 2,
+                    px: 3,
                     pb: 2,
                     pt: 0,
                     gap: 1,
@@ -141,6 +141,7 @@ export function AdminUserCard({
             >
                 {!user.isEmailVerified ? (
                     <Button
+                        style={{ marginLeft: 0 }}
                         variant="outlined"
                         color="warning"
                         fullWidth
@@ -154,6 +155,7 @@ export function AdminUserCard({
                 ) : null}
 
                 <Button
+                    style={{ marginLeft: 0 }}
                     variant="outlined"
                     color="secondary"
                     fullWidth
@@ -165,11 +167,12 @@ export function AdminUserCard({
                         : "Reset contraseña"}
                 </Button>
 
-                <Button variant="outlined" fullWidth onClick={() => onEdit(user)}>
+                <Button style={{ marginLeft: 0 }} variant="outlined" fullWidth onClick={() => onEdit(user)}>
                     Editar
                 </Button>
 
                 <Button
+                    style={{ marginLeft: 0 }}
                     variant="outlined"
                     color="error"
                     fullWidth
