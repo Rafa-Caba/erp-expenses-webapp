@@ -1,4 +1,7 @@
 // src/features/dashboard/components/DashboardSummaryCards.tsx
+// Financial summary cards for the dashboard.
+// Fase 4 note: cards now expose debt payments and debt collections separately
+// so collections from "Me deben" are shown as money coming in, not as expenses.
 
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
@@ -7,11 +10,9 @@ import Typography from "@mui/material/Typography";
 
 import { formatDashboardAmount } from "../services/dashboard.service";
 import type { MonthlySummaryReport } from "../../reports/types/report.types";
-import type { ReconciliationSummary } from "../../reconciliation/types/reconciliation.types";
 
 type DashboardSummaryCardsProps = {
     monthlySummary: MonthlySummaryReport;
-    reconciliationSummary: ReconciliationSummary;
     currency: "ALL" | "MXN" | "USD";
 };
 
@@ -48,20 +49,11 @@ function SummaryCard({ label, value, caption }: SummaryCardProps) {
 
 export function DashboardSummaryCards({
     monthlySummary,
-    reconciliationSummary,
     currency,
 }: DashboardSummaryCardsProps) {
     return (
         <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
-                <SummaryCard
-                    label="Balance neto"
-                    value={formatDashboardAmount(monthlySummary.totals.netBalance, currency)}
-                    caption={`${monthlySummary.counts.total} movimientos en el periodo`}
-                />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <SummaryCard
                     label="Ingresos"
                     value={formatDashboardAmount(monthlySummary.totals.income, currency)}
@@ -69,7 +61,7 @@ export function DashboardSummaryCards({
                 />
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <SummaryCard
                     label="Gastos"
                     value={formatDashboardAmount(monthlySummary.totals.expenses, currency)}
@@ -77,27 +69,27 @@ export function DashboardSummaryCards({
                 />
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <SummaryCard
                     label="Pagos de deuda"
                     value={formatDashboardAmount(monthlySummary.totals.debtPayments, currency)}
-                    caption={`${monthlySummary.counts.debtPayments} pago(s) detectados`}
+                    caption={`${monthlySummary.counts.debtPayments} salida(s) por deudas propias`}
                 />
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <SummaryCard
-                    label="Conciliadas"
-                    value={String(reconciliationSummary.reconciledCount)}
-                    caption={`${reconciliationSummary.exceptionCount} con excepción`}
+                    label="Cobros de deuda"
+                    value={formatDashboardAmount(monthlySummary.totals.debtCollections, currency)}
+                    caption={`${monthlySummary.counts.debtCollections} entrada(s) de deudas por cobrar`}
                 />
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, xl: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, xl: 2.4 }}>
                 <SummaryCard
-                    label="Diferencia conciliación"
-                    value={formatDashboardAmount(reconciliationSummary.differenceAmount, currency)}
-                    caption={`${reconciliationSummary.totalCount} registro(s) evaluados`}
+                    label="Balance neto"
+                    value={formatDashboardAmount(monthlySummary.totals.netBalance, currency)}
+                    caption={`${monthlySummary.counts.total} movimientos en el periodo`}
                 />
             </Grid>
         </Grid>

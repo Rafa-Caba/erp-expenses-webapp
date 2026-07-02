@@ -1,4 +1,8 @@
 // src/features/reports/components/DebtSummarySection.tsx
+// Debt summary analytics section.
+// Fase 4 note: the API now separates current outstanding snapshot from period
+// activity so old active debts remain in the snapshot and payments/collections
+// are scoped to the selected filters.
 
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -63,28 +67,59 @@ export function DebtSummarySection({
     }
 
     const currency = summary.filters.currency ?? "MXN";
+    const snapshot = summary.currentOutstandingSnapshot;
+    const activity = summary.periodActivity;
 
     return (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
             <Stack spacing={2}>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    Resumen de deudas
-                </Typography>
+                <Stack spacing={0.5}>
+                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        Resumen de deudas
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                        Snapshot actual de saldos y actividad del periodo filtrado.
+                    </Typography>
+                </Stack>
 
                 <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 4 }}>
-                        <MetricCard label="Total deudas" value={String(summary.counts.total)} />
+                        <MetricCard label="Total deudas" value={String(snapshot.counts.total)} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                         <MetricCard
-                            label="Monto original total"
-                            value={formatReportMoney(summary.totalOriginalAmount, currency)}
+                            label="Debo actual"
+                            value={formatReportMoney(
+                                snapshot.direction.owedByMeRemainingAmount,
+                                currency
+                            )}
                         />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                         <MetricCard
-                            label="Monto restante total"
-                            value={formatReportMoney(summary.totalRemainingAmount, currency)}
+                            label="Me deben actual"
+                            value={formatReportMoney(
+                                snapshot.direction.owedToMeRemainingAmount,
+                                currency
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
+                            label="Pagos de deuda"
+                            value={formatReportMoney(activity.debtPayments, currency)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
+                            label="Cobros de deuda"
+                            value={formatReportMoney(activity.debtCollections, currency)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
+                            label="Cargos de deuda"
+                            value={formatReportMoney(activity.debtFees, currency)}
                         />
                     </Grid>
                 </Grid>
@@ -93,25 +128,61 @@ export function DebtSummarySection({
 
                 <Stack spacing={1}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                        Dirección
+                        Snapshot actual
                     </Typography>
 
+                    <Typography variant="body2">
+                        <strong>Original total:</strong>{" "}
+                        {formatReportMoney(snapshot.totalOriginalAmount, currency)}
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Restante total:</strong>{" "}
+                        {formatReportMoney(snapshot.totalRemainingAmount, currency)}
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Activas:</strong> {snapshot.counts.active} •{" "}
+                        <strong>Vencidas:</strong> {snapshot.counts.overdue} •{" "}
+                        <strong>Pagadas:</strong> {snapshot.counts.paid}
+                    </Typography>
                     <Typography variant="body2">
                         <strong>Yo debo:</strong>{" "}
                         {formatReportMoney(
-                            summary.direction.owedByMeRemainingAmount,
+                            snapshot.direction.owedByMeRemainingAmount,
                             currency
                         )}{" "}
-                        ({summary.direction.owedByMeCount})
+                        ({snapshot.direction.owedByMeCount})
                     </Typography>
-
                     <Typography variant="body2">
                         <strong>Me deben:</strong>{" "}
                         {formatReportMoney(
-                            summary.direction.owedToMeRemainingAmount,
+                            snapshot.direction.owedToMeRemainingAmount,
                             currency
                         )}{" "}
-                        ({summary.direction.owedToMeCount})
+                        ({snapshot.direction.owedToMeCount})
+                    </Typography>
+                </Stack>
+
+                <Divider />
+
+                <Stack spacing={1}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        Actividad del periodo
+                    </Typography>
+
+                    <Typography variant="body2">
+                        <strong>Pagos registrados:</strong> {activity.paymentsCount}
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Principal pagado:</strong>{" "}
+                        {formatReportMoney(activity.principalPaid, currency)} •{" "}
+                        <strong>Principal cobrado:</strong>{" "}
+                        {formatReportMoney(activity.principalCollected, currency)}
+                    </Typography>
+                    <Typography variant="body2">
+                        <strong>Cashflow total:</strong>{" "}
+                        {formatReportMoney(activity.completedPaymentsTotal, currency)} •{" "}
+                        <strong>Cashflow neto:</strong>{" "}
+                        {formatReportMoney(activity.netCashflow, currency)}
                     </Typography>
                 </Stack>
 
@@ -129,18 +200,16 @@ export function DebtSummarySection({
                     ) : (
                         summary.series.map((item) => (
                             <Paper key={item.label} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                                <Stack
-                                    direction={{ xs: "column", lg: "row" }}
-                                    justifyContent="space-between"
-                                    spacing={1}
-                                >
+                                <Stack spacing={0.5}>
                                     <Typography sx={{ fontWeight: 600 }}>{item.label}</Typography>
                                     <Typography variant="body2">
-                                        Creado:{" "}
-                                        {formatReportMoney(item.createdDebtAmount, currency)} •
+                                        Creado: {formatReportMoney(item.createdDebtAmount, currency)} •
                                         Pagado: {formatReportMoney(item.paidAmount, currency)} •
-                                        Restante:{" "}
-                                        {formatReportMoney(item.remainingAmount, currency)}
+                                        Cobrado: {formatReportMoney(item.collectedAmount, currency)}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        Cargos: {formatReportMoney(item.feeAmount, currency)} •
+                                        Restante: {formatReportMoney(item.remainingAmount, currency)}
                                     </Typography>
                                 </Stack>
                             </Paper>

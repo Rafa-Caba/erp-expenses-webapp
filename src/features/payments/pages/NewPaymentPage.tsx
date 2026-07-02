@@ -1,4 +1,7 @@
 // src/features/payments/pages/NewPaymentPage.tsx
+// New payment page.
+// Converts form strings into the API contract where amount is cashflow,
+// principalAmount reduces debt, and feeAmount is informational debt cost.
 
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -27,6 +30,16 @@ function getTodayDateInputValue(): string {
     return new Date().toISOString().slice(0, 10);
 }
 
+function resolveFeeAmount(value: string): number {
+    return value.trim().length > 0 ? Number(value) : 0;
+}
+
+function resolvePrincipalAmount(values: PaymentFormValues): number {
+    return values.principalAmount.trim().length > 0
+        ? Number(values.principalAmount)
+        : Number(values.amount);
+}
+
 const INITIAL_VALUES: PaymentFormValues = {
     debtId: "",
     accountId: "",
@@ -34,6 +47,9 @@ const INITIAL_VALUES: PaymentFormValues = {
     memberId: "",
     transactionId: "",
     amount: "",
+    principalAmount: "",
+    feeAmount: "0",
+    cashflowDirection: "",
     currency: "MXN",
     paymentDate: getTodayDateInputValue(),
     method: "",
@@ -45,6 +61,8 @@ const INITIAL_VALUES: PaymentFormValues = {
 
 function toCreatePaymentPayload(values: PaymentFormValues): CreatePaymentPayload {
     const amount = Number(values.amount);
+    const principalAmount = resolvePrincipalAmount(values);
+    const feeAmount = resolveFeeAmount(values.feeAmount);
     const hasAccountId = values.accountId.trim().length > 0;
     const hasCardId = values.cardId.trim().length > 0;
 
@@ -55,6 +73,9 @@ function toCreatePaymentPayload(values: PaymentFormValues): CreatePaymentPayload
         memberId: values.memberId.trim() || null,
         transactionId: values.transactionId.trim() || null,
         amount,
+        principalAmount,
+        feeAmount,
+        cashflowDirection: values.cashflowDirection || null,
         currency: values.currency,
         paymentDate: values.paymentDate,
         method: values.method || null,
@@ -112,7 +133,7 @@ export function NewPaymentPage() {
     return (
         <Page
             title="Nuevo pago"
-            subtitle="Agrega un nuevo pago ligado a una deuda del workspace activo."
+            subtitle="Agrega un nuevo pago o cobro ligado a una deuda del workspace activo."
         >
             <PaymentForm
                 workspaceId={workspaceId}

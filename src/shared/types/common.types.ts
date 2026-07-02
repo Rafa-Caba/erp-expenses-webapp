@@ -1,10 +1,12 @@
 // src/shared/types/common.types.ts
+// Shared primitive/domain types used across the frontend contracts.
 
 export type Id = string;
 export type IsoDateString = string;
 export type Nullable<T> = T | null;
 
 export type CurrencyCode = "MXN" | "USD";
+export type CashflowDirection = "in" | "out";
 
 export type UserRole = "USER" | "ADMIN";
 

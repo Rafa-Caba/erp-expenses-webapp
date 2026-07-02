@@ -1,4 +1,7 @@
 // src/features/transactions/pages/NewTransactionPage.tsx
+// New transaction page.
+// For debt_payment transactions, debtId and cashflowDirection are sent so the
+// API can classify debt payments as outflow and debt collections as inflow.
 
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -38,6 +41,8 @@ const INITIAL_VALUES: TransactionFormValues = {
     cardId: "",
     memberId: "",
     categoryId: "",
+    debtId: "",
+    cashflowDirection: "",
     type: "expense",
     amount: "",
     currency: "MXN",
@@ -56,12 +61,18 @@ const INITIAL_VALUES: TransactionFormValues = {
 function toCreateTransactionPayload(
     values: TransactionFormValues
 ): CreateTransactionPayload {
+    const isDebtPayment = values.type === "debt_payment";
+
     return {
         accountId: values.accountId.trim() || null,
-        destinationAccountId: values.destinationAccountId.trim() || null,
-        cardId: values.cardId.trim() || null,
+        destinationAccountId: isDebtPayment
+            ? null
+            : values.destinationAccountId.trim() || null,
+        cardId: isDebtPayment ? null : values.cardId.trim() || null,
         memberId: values.memberId.trim(),
-        categoryId: values.categoryId.trim() || null,
+        categoryId: isDebtPayment ? null : values.categoryId.trim() || null,
+        debtId: isDebtPayment ? values.debtId.trim() || null : null,
+        cashflowDirection: isDebtPayment ? values.cashflowDirection || null : null,
         type: values.type,
         amount: Number(values.amount),
         currency: values.currency,

@@ -1,4 +1,7 @@
 // src/features/reports/components/MonthlySummarySection.tsx
+// Monthly summary analytics section.
+// Fase 4 note: debt payments and debt collections are displayed separately,
+// and debt fees are informational because they are already included in cashflow.
 
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -86,11 +89,34 @@ export function MonthlySummarySection({
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                         <MetricCard
+                            label="Pagos de deuda"
+                            value={formatReportMoney(summary.totals.debtPayments, currency)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
+                            label="Cobros de deuda"
+                            value={formatReportMoney(summary.totals.debtCollections, currency)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
+                            label="Cargos de deuda"
+                            value={formatReportMoney(summary.totals.debtFees, currency)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <MetricCard
                             label="Balance neto"
                             value={formatReportMoney(summary.totals.netBalance, currency)}
                         />
                     </Grid>
                 </Grid>
+
+                <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                    Fórmula: ingresos + cobros de deuda - gastos - pagos de deuda + ajustes.
+                    Los cargos de deuda son informativos porque ya vienen dentro del pago real.
+                </Typography>
 
                 <Divider />
 
@@ -101,7 +127,7 @@ export function MonthlySummarySection({
 
                     {summary.topExpenseCategories.length === 0 ? (
                         <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                            No hay categorías para mostrar.
+                            No hay categorías de gasto para mostrar.
                         </Typography>
                     ) : (
                         summary.topExpenseCategories.map((item) => (
@@ -146,15 +172,16 @@ export function MonthlySummarySection({
                                 variant="outlined"
                                 sx={{ p: 1.5, borderRadius: 2 }}
                             >
-                                <Stack
-                                    direction={{ xs: "column", lg: "row" }}
-                                    justifyContent="space-between"
-                                    spacing={1}
-                                >
+                                <Stack spacing={0.5}>
                                     <Typography sx={{ fontWeight: 600 }}>{item.label}</Typography>
                                     <Typography variant="body2">
                                         Ingreso: {formatReportMoney(item.income, currency)} •
                                         Gasto: {formatReportMoney(item.expenses, currency)} •
+                                        Pagos deuda: {formatReportMoney(item.debtPayments, currency)}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        Cobros deuda: {formatReportMoney(item.debtCollections, currency)} •
+                                        Cargos: {formatReportMoney(item.debtFees, currency)} •
                                         Balance: {formatReportMoney(item.netBalance, currency)}
                                     </Typography>
                                 </Stack>

@@ -1,4 +1,7 @@
 // src/features/dashboard/components/DashboardTrendChart.tsx
+// Period trend chart for monthly summary analytics.
+// Fase 4 note: the series now includes debt payments and debt collections so
+// the chart follows the same cashflow model as the summary cards.
 
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -80,7 +83,7 @@ export function DashboardTrendChart({
                         Tendencia del periodo
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                        Evolución de ingresos, gastos y balance neto.
+                        Evolución de ingresos, gastos, deuda y balance neto.
                     </Typography>
                 </Stack>
 
@@ -106,6 +109,22 @@ export function DashboardTrendChart({
                             dataKey="expenses"
                             name="Gastos"
                             stroke="#d32f2f"
+                            strokeWidth={2}
+                            dot={false}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="debtPayments"
+                            name="Pagos de deuda"
+                            stroke="#ef6c00"
+                            strokeWidth={2}
+                            dot={false}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="debtCollections"
+                            name="Cobros de deuda"
+                            stroke="#00838f"
                             strokeWidth={2}
                             dot={false}
                         />

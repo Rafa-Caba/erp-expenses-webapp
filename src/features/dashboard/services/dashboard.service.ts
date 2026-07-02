@@ -1,4 +1,8 @@
 // src/features/dashboard/services/dashboard.service.ts
+// Dashboard helper layer.
+// It resolves UI filters into report filters and builds safe dashboard highlights.
+// Fase 4 note: category highlights now use expense-only data so income categories
+// such as Salario do not appear as the main spending category.
 
 import {
     endOfMonth,
@@ -12,6 +16,8 @@ import {
 } from "date-fns";
 
 import type { ReminderRecord } from "../../reminders/types/reminder.types";
+import type { ReportFilters } from "../../reports/types/report.types";
+import type { ReconciliationListFilters } from "../../reconciliation/types/reconciliation.types";
 import type {
     DashboardFilters,
     DashboardHighlight,
@@ -19,8 +25,6 @@ import type {
     DashboardRemindersSummary,
     DashboardResolvedDateRange,
 } from "../types/dashboard.types";
-import type { ReportFilters } from "../../reports/types/report.types";
-import type { ReconciliationListFilters } from "../../reconciliation/types/reconciliation.types";
 
 function formatDateOnly(value: Date): string {
     return format(value, "yyyy-MM-dd");
@@ -132,6 +136,15 @@ export function buildDashboardReportFilters(
     };
 }
 
+export function buildDashboardExpenseCategoryFilters(
+    filters: DashboardFilters
+): ReportFilters {
+    return {
+        ...buildDashboardReportFilters(filters),
+        type: "expense",
+    };
+}
+
 export function buildDashboardReconciliationFilters(
     filters: DashboardFilters
 ): ReconciliationListFilters {
@@ -215,14 +228,16 @@ export function buildDashboardHighlights(
         highlights.push({
             id: "net-positive",
             title: "Balance neto positivo",
-            description: "Tus ingresos superan gastos, pagos y ajustes del periodo.",
+            description:
+                "Tus ingresos y cobros superan gastos, pagos de deuda y ajustes del periodo.",
             severity: "success",
         });
     } else if (data.monthlySummary.totals.netBalance < 0) {
         highlights.push({
             id: "net-negative",
             title: "Balance neto negativo",
-            description: "El periodo actual va abajo del punto de equilibrio.",
+            description:
+                "El periodo actual va abajo del punto de equilibrio considerando pagos y cobros de deuda.",
             severity: "warning",
         });
     } else {
@@ -250,11 +265,11 @@ export function buildDashboardHighlights(
         });
     }
 
-    if (data.debtSummary.counts.overdue > 0) {
+    if (data.debtSummary.currentOutstandingSnapshot.counts.overdue > 0) {
         highlights.push({
             id: "overdue-debts",
             title: "Deudas vencidas",
-            description: `${data.debtSummary.counts.overdue} deuda(s) aparecen como vencidas.`,
+            description: `${data.debtSummary.currentOutstandingSnapshot.counts.overdue} deuda(s) aparecen como vencidas.`,
             severity: "warning",
         });
     }
@@ -293,13 +308,13 @@ export function buildDashboardHighlights(
         });
     }
 
-    const topCategory = data.categoryBreakdown.categories[0];
+    const topExpenseCategory = data.categoryBreakdown.categories[0];
 
-    if (topCategory) {
+    if (topExpenseCategory) {
         highlights.push({
-            id: "top-category",
-            title: "Principal categoría",
-            description: `${topCategory.categoryName} concentra ${topCategory.percentageOfTotal.toFixed(1)}% del gasto filtrado.`,
+            id: "top-expense-category",
+            title: "Principal gasto",
+            description: `${topExpenseCategory.categoryName} concentra ${topExpenseCategory.percentageOfTotal.toFixed(1)}% del gasto filtrado.`,
             severity: "info",
         });
     }

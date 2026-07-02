@@ -1,10 +1,19 @@
 // src/features/ledger/types/ledger.types.ts
+// Ledger frontend types.
+// Fase 6 note: ledger rows keep the original transaction.cashflowDirection so
+// debt_payment entries can be signed as inflow or outflow without guessing from type.
 
 import type { AccountRecord } from "../../accounts/types/account.types";
 import type { CategoryRecord } from "../../categories/types/category.types";
 import type { TransactionStatus, TransactionRecord } from "../../transactions/types/transaction.types";
 import type { WorkspaceMemberRecord } from "../../workspaces/types/workspace-member.types";
-import type { CurrencyCode, IsoDateString, Nullable, TransactionType } from "../../../shared/types/common.types";
+import type {
+    CashflowDirection,
+    CurrencyCode,
+    IsoDateString,
+    Nullable,
+    TransactionType,
+} from "../../../shared/types/common.types";
 
 export type LedgerSortOrder =
     | "date_desc"
@@ -46,6 +55,7 @@ export interface LedgerEntryRow {
     transactionId: string;
     entryKind: LedgerEntryKind;
     direction: "INFLOW" | "OUTFLOW";
+    cashflowDirection: Nullable<CashflowDirection>;
     transactionDate: IsoDateString;
     type: TransactionType;
     status: TransactionStatus;

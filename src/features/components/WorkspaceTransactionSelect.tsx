@@ -1,4 +1,7 @@
 // src/features/components/WorkspaceTransactionSelect.tsx
+// Workspace-aware transaction selector with optional filters.
+// Fase 5 note: debtIdFilter lets payment forms link only debt_payment
+// transactions that belong to the selected debt.
 
 import { useId } from "react";
 import Box from "@mui/material/Box";
@@ -10,7 +13,7 @@ import Select, { type SelectChangeEvent } from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { TransactionType } from "../../shared/types/common.types";
+import type { CashflowDirection, TransactionType } from "../../shared/types/common.types";
 import { useTransactionsQuery } from "../transactions/hooks/useTransactionsQuery";
 import type {
     TransactionRecord,
@@ -29,6 +32,7 @@ type WorkspaceTransactionSelectProps = {
     emptyOptionLabel?: string;
     typeFilter?: TransactionType | "ALL";
     statusFilter?: TransactionStatus | "ALL";
+    debtIdFilter?: string | "ALL";
     includeArchived?: boolean;
     includeHidden?: boolean;
 };
@@ -56,12 +60,24 @@ function getTransactionTypeLabel(type: TransactionType): string {
         case "income":
             return "Ingreso";
         case "debt_payment":
-            return "Pago de deuda";
+            return "Pago/cobro de deuda";
         case "transfer":
             return "Transferencia";
         case "adjustment":
             return "Ajuste";
     }
+}
+
+function getCashflowDirectionLabel(direction: CashflowDirection | null): string {
+    if (direction === "in") {
+        return "Entrada";
+    }
+
+    if (direction === "out") {
+        return "Salida";
+    }
+
+    return "Sin dirección";
 }
 
 function getTransactionOptionLabel(transaction: TransactionRecord): string {
@@ -76,6 +92,7 @@ function matchesFilters(
     transaction: TransactionRecord,
     typeFilter: TransactionType | "ALL",
     statusFilter: TransactionStatus | "ALL",
+    debtIdFilter: string | "ALL",
     includeArchived: boolean,
     includeHidden: boolean
 ): boolean {
@@ -95,6 +112,10 @@ function matchesFilters(
         return false;
     }
 
+    if (debtIdFilter !== "ALL" && transaction.debtId !== debtIdFilter) {
+        return false;
+    }
+
     return true;
 }
 
@@ -102,6 +123,7 @@ function buildSortedTransactions(
     transactions: TransactionRecord[],
     typeFilter: TransactionType | "ALL",
     statusFilter: TransactionStatus | "ALL",
+    debtIdFilter: string | "ALL",
     includeArchived: boolean,
     includeHidden: boolean
 ): TransactionRecord[] {
@@ -111,6 +133,7 @@ function buildSortedTransactions(
                 transaction,
                 typeFilter,
                 statusFilter,
+                debtIdFilter,
                 includeArchived,
                 includeHidden
             )
@@ -148,6 +171,12 @@ function TransactionOptionContent({
                 <Typography variant="caption" sx={{ opacity: 0.55 }}>
                     {transaction.status}
                 </Typography>
+
+                {transaction.type === "debt_payment" ? (
+                    <Typography variant="caption" sx={{ opacity: 0.55 }}>
+                        {getCashflowDirectionLabel(transaction.cashflowDirection)}
+                    </Typography>
+                ) : null}
             </Stack>
         </Box>
     );
@@ -165,6 +194,7 @@ export function WorkspaceTransactionSelect({
     emptyOptionLabel = "Sin transacción específica",
     typeFilter = "ALL",
     statusFilter = "ALL",
+    debtIdFilter = "ALL",
     includeArchived = false,
     includeHidden = true,
 }: WorkspaceTransactionSelectProps) {
@@ -178,6 +208,7 @@ export function WorkspaceTransactionSelect({
         allTransactions,
         typeFilter,
         statusFilter,
+        debtIdFilter,
         includeArchived,
         includeHidden
     );

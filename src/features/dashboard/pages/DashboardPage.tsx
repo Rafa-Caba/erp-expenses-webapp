@@ -193,13 +193,11 @@ export function DashboardPage() {
                     </Alert>
                 ) : null}
 
-                {dashboardOverview.monthlySummaryQuery.isLoading ||
-                    dashboardOverview.reconciliationSummaryQuery.isLoading ? (
+                {dashboardOverview.monthlySummaryQuery.isLoading ? (
                     <DashboardSectionLoading />
-                ) : monthlySummary && reconciliationSummary ? (
+                ) : monthlySummary ? (
                     <DashboardSummaryCards
                         monthlySummary={monthlySummary}
-                        reconciliationSummary={reconciliationSummary}
                         currency={filters.currency}
                     />
                 ) : null}

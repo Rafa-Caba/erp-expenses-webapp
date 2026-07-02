@@ -1,4 +1,8 @@
 // src/features/ledger/components/LedgerSummaryCards.tsx
+// Ledger summary cards.
+// Fase 6 note: entries are already signed by ledger.service.ts using
+// transaction.cashflowDirection, so debt collections appear in Entradas and
+// debt payments appear in Salidas.
 
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
@@ -72,7 +76,7 @@ export function LedgerSummaryCards({
                 <SummaryCard
                     title="Entradas"
                     value={formatCurrency(summary.inflowAmount, currency)}
-                    caption={`${summary.postedCount} aplicadas / ${summary.pendingCount} pendientes`}
+                    caption="Incluye ingresos y cobros de deuda con cashflow in"
                 />
             </Grid>
 
@@ -80,7 +84,7 @@ export function LedgerSummaryCards({
                 <SummaryCard
                     title="Salidas"
                     value={formatCurrency(summary.outflowAmount, currency)}
-                    caption={`${summary.cancelledCount} canceladas / ${summary.recurringCount} recurrentes`}
+                    caption="Incluye gastos y pagos de deuda con cashflow out"
                 />
             </Grid>
 
@@ -94,9 +98,9 @@ export function LedgerSummaryCards({
 
             <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
                 <SummaryCard
-                    title="Flags"
-                    value={`${summary.hiddenCount}/${summary.archivedCount}/${summary.inactiveCount}`}
-                    caption="Ocultas / Archivadas / Inactivas"
+                    title="Estado"
+                    value={`${summary.postedCount}/${summary.pendingCount}/${summary.cancelledCount}`}
+                    caption="Aplicadas / Pendientes / Canceladas"
                 />
             </Grid>
         </Grid>

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../../shared/api/apiClient";
 import { dashboardQueryKeys } from "../api/dashboard.queryKeys";
 import {
+    buildDashboardExpenseCategoryFilters,
     buildDashboardReconciliationFilters,
     buildDashboardRemindersSummary,
     buildDashboardReportFilters,
@@ -39,6 +40,10 @@ export function useDashboardOverview(
 
     const dateRange = useMemo(() => resolveDashboardDateRange(filters), [filters]);
     const reportFilters = useMemo(() => buildDashboardReportFilters(filters), [filters]);
+    const expenseCategoryFilters = useMemo(
+        () => buildDashboardExpenseCategoryFilters(filters),
+        [filters]
+    );
     const reconciliationFilters = useMemo(
         () => buildDashboardReconciliationFilters(filters),
         [filters]
@@ -72,7 +77,7 @@ export function useDashboardOverview(
 
             const response = await reportService.getCategoryBreakdown(
                 workspaceId,
-                reportFilters
+                expenseCategoryFilters
             );
 
             return response.breakdown;

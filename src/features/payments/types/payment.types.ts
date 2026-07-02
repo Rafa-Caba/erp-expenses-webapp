@@ -1,6 +1,11 @@
 // src/features/payments/types/payment.types.ts
+// Frontend payment contracts aligned with the API.
+// amount = real cashflow moved.
+// principalAmount = amount applied to reduce debt.
+// feeAmount = fees, interests, commissions, or extra charges.
 
 import type {
+    CashflowDirection,
     CurrencyCode,
     IsoDateString,
     Nullable,
@@ -22,6 +27,9 @@ export interface PaymentRecord {
     memberId: Nullable<string>;
     transactionId: Nullable<string>;
     amount: number;
+    principalAmount: number;
+    feeAmount: number;
+    cashflowDirection: Nullable<CashflowDirection>;
     currency: CurrencyCode;
     paymentDate: IsoDateString;
     method: Nullable<PaymentMethod>;
@@ -40,6 +48,9 @@ export interface CreatePaymentPayload {
     memberId?: Nullable<string>;
     transactionId?: Nullable<string>;
     amount: number;
+    principalAmount: number;
+    feeAmount: number;
+    cashflowDirection?: Nullable<CashflowDirection>;
     currency: CurrencyCode;
     paymentDate: string;
     method?: Nullable<PaymentMethod>;
@@ -56,6 +67,9 @@ export interface UpdatePaymentPayload {
     memberId?: Nullable<string>;
     transactionId?: Nullable<string>;
     amount?: number;
+    principalAmount?: number;
+    feeAmount?: number;
+    cashflowDirection?: Nullable<CashflowDirection>;
     currency?: CurrencyCode;
     paymentDate?: string;
     method?: Nullable<PaymentMethod>;

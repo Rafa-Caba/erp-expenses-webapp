@@ -1,7 +1,16 @@
 // src/features/ledger/services/ledger.service.ts
+// Ledger business logic.
+// Fase 6 rules:
+// - transaction.cashflowDirection === "in" signs the row as positive.
+// - transaction.cashflowDirection === "out" signs the row as negative.
+// - transfers remain split into transfer_out and transfer_in rows.
+// - adjustments preserve their signed amount behavior.
+// - legacy rows without cashflowDirection fall back to the previous type-based logic.
 
 import type { AccountRecord } from "../../accounts/types/account.types";
 import type { CategoryRecord } from "../../categories/types/category.types";
+import type { TransactionRecord } from "../../transactions/types/transaction.types";
+import type { WorkspaceMemberRecord } from "../../workspaces/types/workspace-member.types";
 import type {
     LedgerDataset,
     LedgerEntryRow,
@@ -9,8 +18,6 @@ import type {
     LedgerSummary,
     LedgerView,
 } from "../types/ledger.types";
-import type { TransactionRecord } from "../../transactions/types/transaction.types";
-import type { WorkspaceMemberRecord } from "../../workspaces/types/workspace-member.types";
 
 function normalizeText(value: string): string {
     return value.trim().toLocaleLowerCase();
@@ -72,7 +79,9 @@ function getCategoryName(
         return null;
     }
 
-    return safeLabel(categoryMap.get(categoryId)?._id ? categoryMap.get(categoryId)?.name : null, `Categoría ${categoryId}`);
+    const category = categoryMap.get(categoryId);
+
+    return safeLabel(category?.name, `Categoría ${categoryId}`);
 }
 
 function getMemberName(
@@ -90,18 +99,44 @@ function toAbsoluteAmount(value: number): number {
     return Math.abs(Number.isFinite(value) ? value : 0);
 }
 
-function buildStandardSignedAmount(transaction: TransactionRecord): number {
+function buildSignedAmountFromCashflowDirection(transaction: TransactionRecord): number | null {
+    if (transaction.cashflowDirection === "in") {
+        return toAbsoluteAmount(transaction.amount);
+    }
+
+    if (transaction.cashflowDirection === "out") {
+        return -toAbsoluteAmount(transaction.amount);
+    }
+
+    return null;
+}
+
+function buildAdjustmentSignedAmount(transaction: TransactionRecord): number {
+    return transaction.amount >= 0
+        ? toAbsoluteAmount(transaction.amount)
+        : -toAbsoluteAmount(transaction.amount);
+}
+
+function buildLegacySignedAmount(transaction: TransactionRecord): number {
     if (transaction.type === "income") {
         return toAbsoluteAmount(transaction.amount);
     }
 
+    return -toAbsoluteAmount(transaction.amount);
+}
+
+function buildStandardSignedAmount(transaction: TransactionRecord): number {
     if (transaction.type === "adjustment") {
-        return transaction.amount >= 0
-            ? toAbsoluteAmount(transaction.amount)
-            : -toAbsoluteAmount(transaction.amount);
+        return buildAdjustmentSignedAmount(transaction);
     }
 
-    return -toAbsoluteAmount(transaction.amount);
+    const signedAmountFromCashflowDirection = buildSignedAmountFromCashflowDirection(transaction);
+
+    if (signedAmountFromCashflowDirection !== null) {
+        return signedAmountFromCashflowDirection;
+    }
+
+    return buildLegacySignedAmount(transaction);
 }
 
 function buildSearchableText(row: LedgerEntryRow): string {
@@ -118,6 +153,7 @@ function buildSearchableText(row: LedgerEntryRow): string {
         row.type,
         row.status,
         row.direction,
+        row.cashflowDirection ?? "",
         row.currency,
         row.entryKind,
         String(row.amount),
@@ -147,6 +183,7 @@ export function buildLedgerRows(dataset: LedgerDataset): LedgerEntryRow[] {
                     transactionId: transaction._id,
                     entryKind: "transfer_out",
                     direction: "OUTFLOW",
+                    cashflowDirection: "out",
                     transactionDate: transaction.transactionDate,
                     type: transaction.type,
                     status: transaction.status,
@@ -186,6 +223,7 @@ export function buildLedgerRows(dataset: LedgerDataset): LedgerEntryRow[] {
                     transactionId: transaction._id,
                     entryKind: "transfer_in",
                     direction: "INFLOW",
+                    cashflowDirection: "in",
                     transactionDate: transaction.transactionDate,
                     type: transaction.type,
                     status: transaction.status,
@@ -228,6 +266,7 @@ export function buildLedgerRows(dataset: LedgerDataset): LedgerEntryRow[] {
             transactionId: transaction._id,
             entryKind: "standard",
             direction: signedAmount >= 0 ? "INFLOW" : "OUTFLOW",
+            cashflowDirection: transaction.cashflowDirection,
             transactionDate: transaction.transactionDate,
             type: transaction.type,
             status: transaction.status,

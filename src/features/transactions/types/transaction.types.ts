@@ -1,6 +1,10 @@
-// src/transactions/types/transaction.types.ts
+// src/features/transactions/types/transaction.types.ts
+// Frontend transaction contracts aligned with the API.
+// debtId and cashflowDirection are used by debt_payment transactions so the API
+// can distinguish debt payments from debt collections.
 
 import type {
+    CashflowDirection,
     CurrencyCode,
     IsoDateString,
     Nullable,
@@ -19,6 +23,8 @@ export interface TransactionRecord {
     cardId: Nullable<string>;
     memberId: string;
     categoryId: Nullable<string>;
+    debtId: Nullable<string>;
+    cashflowDirection: Nullable<CashflowDirection>;
     type: TransactionType;
     amount: number;
     currency: CurrencyCode;
@@ -44,6 +50,8 @@ export interface CreateTransactionPayload {
     cardId?: Nullable<string>;
     memberId: string;
     categoryId?: Nullable<string>;
+    debtId?: Nullable<string>;
+    cashflowDirection?: Nullable<CashflowDirection>;
     type: TransactionType;
     amount: number;
     currency: CurrencyCode;
@@ -65,6 +73,8 @@ export interface UpdateTransactionPayload {
     cardId?: Nullable<string>;
     memberId?: string;
     categoryId?: Nullable<string>;
+    debtId?: Nullable<string>;
+    cashflowDirection?: Nullable<CashflowDirection>;
     type?: TransactionType;
     amount?: number;
     currency?: CurrencyCode;

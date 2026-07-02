@@ -1,4 +1,7 @@
 // src/features/payments/pages/EditPaymentPage.tsx
+// Edit payment page.
+// Preserves old payments by falling back to amount/0 when principalAmount or
+// feeAmount were not stored before the Phase 1/2 API contract.
 
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -31,6 +34,16 @@ function toDateInputValue(value: string): string {
     return value.slice(0, 10);
 }
 
+function resolveFeeAmount(value: string): number {
+    return value.trim().length > 0 ? Number(value) : 0;
+}
+
+function resolvePrincipalAmount(values: PaymentFormValues): number {
+    return values.principalAmount.trim().length > 0
+        ? Number(values.principalAmount)
+        : Number(values.amount);
+}
+
 function toPaymentFormValues(payment: PaymentRecord): PaymentFormValues {
     return {
         debtId: payment.debtId,
@@ -39,6 +52,9 @@ function toPaymentFormValues(payment: PaymentRecord): PaymentFormValues {
         memberId: payment.memberId ?? "",
         transactionId: payment.transactionId ?? "",
         amount: String(payment.amount),
+        principalAmount: String(payment.principalAmount ?? payment.amount),
+        feeAmount: String(payment.feeAmount ?? 0),
+        cashflowDirection: payment.cashflowDirection ?? "",
         currency: payment.currency,
         paymentDate: toDateInputValue(payment.paymentDate),
         method: payment.method ?? "",
@@ -51,6 +67,8 @@ function toPaymentFormValues(payment: PaymentRecord): PaymentFormValues {
 
 function toUpdatePaymentPayload(values: PaymentFormValues): UpdatePaymentPayload {
     const amount = Number(values.amount);
+    const principalAmount = resolvePrincipalAmount(values);
+    const feeAmount = resolveFeeAmount(values.feeAmount);
     const hasAccountId = values.accountId.trim().length > 0;
     const hasCardId = values.cardId.trim().length > 0;
 
@@ -61,6 +79,9 @@ function toUpdatePaymentPayload(values: PaymentFormValues): UpdatePaymentPayload
         memberId: values.memberId.trim() || null,
         transactionId: values.transactionId.trim() || null,
         amount,
+        principalAmount,
+        feeAmount,
+        cashflowDirection: values.cashflowDirection || null,
         currency: values.currency,
         paymentDate: values.paymentDate,
         method: values.method || null,
@@ -112,10 +133,7 @@ export function EditPaymentPage() {
         return (
             <Page title="Editar pago" subtitle="No fue posible cargar el pago.">
                 <Alert severity="error">
-                    {getApiErrorMessage(
-                        paymentQuery.error,
-                        "No se pudo obtener el pago."
-                    )}
+                    {getApiErrorMessage(paymentQuery.error, "No se pudo obtener el pago.")}
                 </Alert>
             </Page>
         );
@@ -154,7 +172,7 @@ export function EditPaymentPage() {
     return (
         <Page
             title="Editar pago"
-            subtitle="Actualiza monto, fecha, estado y vínculos relacionados del pago."
+            subtitle="Actualiza el pago, su cashflow y el desglose de principal/cargos."
         >
             <PaymentForm
                 workspaceId={workspaceId}

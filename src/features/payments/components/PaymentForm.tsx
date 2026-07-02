@@ -1,4 +1,12 @@
 // src/features/payments/components/PaymentForm.tsx
+// Payment form for debt payments/collections.
+// Fase 5 rules:
+// - The selected debt determines cashflowDirection.
+// - owed_by_me => out: account where money went out.
+// - owed_to_me => in: account where money was received.
+// - amount is the real cashflow moved.
+// - principalAmount is the amount applied to reduce debt.
+// - feeAmount is fees/interests/commissions and does not reduce debt.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -23,7 +31,11 @@ import { WorkspaceCardSelect } from "../../components/WorkspaceCardSelect";
 import { WorkspaceDebtSelect } from "../../components/WorkspaceDebtSelect";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
 import { WorkspaceTransactionSelect } from "../../components/WorkspaceTransactionSelect";
-import type { CurrencyCode } from "../../../shared/types/common.types";
+import type { DebtRecord } from "../../debts/types/debt.types";
+import type {
+    CashflowDirection,
+    CurrencyCode,
+} from "../../../shared/types/common.types";
 import type { PaymentMethod, PaymentStatus } from "../types/payment.types";
 
 type PaymentSourceType = "none" | "account" | "card";
@@ -35,6 +47,9 @@ export type PaymentFormValues = {
     memberId: string;
     transactionId: string;
     amount: string;
+    principalAmount: string;
+    feeAmount: string;
+    cashflowDirection: CashflowDirection | "";
     currency: CurrencyCode;
     paymentDate: string;
     method: PaymentMethod | "";
@@ -49,12 +64,20 @@ type PaymentFormField =
     | "accountId"
     | "cardId"
     | "amount"
+    | "principalAmount"
+    | "feeAmount"
     | "currency"
     | "paymentDate";
 
 type PaymentFormErrors = Partial<Record<PaymentFormField, string>>;
 
-type PaymentFormTextField = "amount" | "paymentDate" | "reference" | "notes";
+type PaymentFormTextField =
+    | "amount"
+    | "principalAmount"
+    | "feeAmount"
+    | "paymentDate"
+    | "reference"
+    | "notes";
 
 type PaymentFormProps = {
     workspaceId: string | null;
@@ -78,37 +101,143 @@ function resolvePaymentSourceType(values: PaymentFormValues): PaymentSourceType 
     return "none";
 }
 
-function validateAmount(value: string): string | null {
+function getDebtCashflowDirection(debt: DebtRecord | null): CashflowDirection | "" {
+    if (!debt) {
+        return "";
+    }
+
+    return debt.type === "owed_by_me" ? "out" : "in";
+}
+
+function getCashflowSummary(direction: CashflowDirection | ""): string {
+    if (direction === "out") {
+        return "Esta deuda es de tipo Debo, por eso el pago será salida de dinero.";
+    }
+
+    if (direction === "in") {
+        return "Esta deuda es de tipo Me deben, por eso el pago será entrada de dinero.";
+    }
+
+    return "Selecciona una deuda para que la app determine si el movimiento es entrada o salida.";
+}
+
+function getAccountLabel(direction: CashflowDirection | ""): string {
+    if (direction === "in") {
+        return "Cuenta donde recibiste el dinero";
+    }
+
+    return "Cuenta desde donde salió el dinero";
+}
+
+function getAccountHelperText(direction: CashflowDirection | ""): string {
+    if (direction === "in") {
+        return "Cuenta donde cayó el cobro de una deuda que te debían.";
+    }
+
+    return "Cuenta desde donde pagaste una deuda propia.";
+}
+
+function roundMoney(value: number): number {
+    return Number(value.toFixed(2));
+}
+
+function parseMoney(value: string): number | null {
     if (!value.trim()) {
-        return "El monto es obligatorio.";
+        return null;
     }
 
     const numericValue = Number(value);
 
-    if (Number.isNaN(numericValue)) {
-        return "El monto debe ser numérico.";
+    return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function validatePositiveAmount(value: string, label: string): string | null {
+    if (!value.trim()) {
+        return `${label} es obligatorio.`;
+    }
+
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return `${label} debe ser numérico.`;
     }
 
     if (numericValue <= 0) {
-        return "El monto debe ser mayor a 0.";
+        return `${label} debe ser mayor a 0.`;
     }
 
     return null;
+}
+
+function validateNonNegativeAmount(value: string, label: string): string | null {
+    if (!value.trim()) {
+        return `${label} es obligatorio.`;
+    }
+
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return `${label} debe ser numérico.`;
+    }
+
+    if (numericValue < 0) {
+        return `${label} no puede ser menor a 0.`;
+    }
+
+    return null;
+}
+
+function validatePaymentBreakdown(values: PaymentFormValues): PaymentFormErrors {
+    const errors: PaymentFormErrors = {};
+    const amount = parseMoney(values.amount);
+    const principalAmount = parseMoney(values.principalAmount);
+    const feeAmount = parseMoney(values.feeAmount);
+
+    const amountError = validatePositiveAmount(values.amount, "El monto total movido");
+    if (amountError) {
+        errors.amount = amountError;
+    }
+
+    const principalError = validateNonNegativeAmount(
+        values.principalAmount,
+        "El monto que reduce deuda"
+    );
+    if (principalError) {
+        errors.principalAmount = principalError;
+    }
+
+    const feeError = validateNonNegativeAmount(
+        values.feeAmount,
+        "Los cargos/intereses/comisiones"
+    );
+    if (feeError) {
+        errors.feeAmount = feeError;
+    }
+
+    if (
+        amount !== null &&
+        principalAmount !== null &&
+        feeAmount !== null &&
+        roundMoney(principalAmount + feeAmount) !== roundMoney(amount)
+    ) {
+        errors.principalAmount =
+            "Monto que reduce deuda + cargos/intereses/comisiones debe coincidir con el monto total movido.";
+        errors.feeAmount = "Revisa el desglose contra el monto total movido.";
+    }
+
+    return errors;
 }
 
 function validatePaymentForm(
     values: PaymentFormValues,
     sourceType: PaymentSourceType
 ): PaymentFormErrors {
-    const errors: PaymentFormErrors = {};
+    const errors: PaymentFormErrors = {
+        ...validatePaymentBreakdown(values),
+    };
 
     if (!values.debtId.trim()) {
         errors.debtId = "La deuda es obligatoria.";
-    }
-
-    const amountError = validateAmount(values.amount);
-    if (amountError) {
-        errors.amount = amountError;
     }
 
     if (!values.currency) {
@@ -144,14 +273,40 @@ export function PaymentForm({
     const [sourceType, setSourceType] = React.useState<PaymentSourceType>(
         resolvePaymentSourceType(initialValues)
     );
+    const [selectedDebt, setSelectedDebt] = React.useState<DebtRecord | null>(null);
 
     React.useEffect(() => {
         setValues(initialValues);
         setSourceType(resolvePaymentSourceType(initialValues));
     }, [initialValues]);
 
+    const resolvedCashflowDirection =
+        getDebtCashflowDirection(selectedDebt) || values.cashflowDirection;
+
+    const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const nextAmount = event.target.value;
+
+        setValues((currentValues) => {
+            const currentPrincipalMatchesAmount =
+                currentValues.principalAmount.trim().length === 0 ||
+                Number(currentValues.principalAmount) === Number(currentValues.amount);
+
+            return {
+                ...currentValues,
+                amount: nextAmount,
+                principalAmount: currentPrincipalMatchesAmount
+                    ? nextAmount
+                    : currentValues.principalAmount,
+                feeAmount:
+                    currentValues.feeAmount.trim().length === 0
+                        ? "0"
+                        : currentValues.feeAmount,
+            };
+        });
+    };
+
     const handleTextChange =
-        (field: PaymentFormTextField) =>
+        (field: Exclude<PaymentFormTextField, "amount">) =>
             (event: React.ChangeEvent<HTMLInputElement>) => {
                 setValues((currentValues) => ({
                     ...currentValues,
@@ -229,8 +384,22 @@ export function PaymentForm({
         setValues((currentValues) => ({
             ...currentValues,
             debtId: value,
+            transactionId: currentValues.debtId === value ? currentValues.transactionId : "",
         }));
     };
+
+    const handleSelectedDebtChange = React.useCallback((debt: DebtRecord | null) => {
+        setSelectedDebt(debt);
+
+        if (!debt) {
+            return;
+        }
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            cashflowDirection: getDebtCashflowDirection(debt),
+        }));
+    }, []);
 
     const handleMemberChange = (value: string) => {
         setValues((currentValues) => ({
@@ -270,7 +439,10 @@ export function PaymentForm({
             return;
         }
 
-        onSubmit(values);
+        onSubmit({
+            ...values,
+            cashflowDirection: resolvedCashflowDirection,
+        });
     };
 
     return (
@@ -284,9 +456,9 @@ export function PaymentForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Registra pagos asociados a deudas. El backend no permite enviar
-                                cuenta y tarjeta al mismo tiempo, por eso aquí eliges una sola
-                                fuente de pago.
+                                Registra pagos o cobros ligados a deudas. La deuda seleccionada
+                                define si el movimiento es entrada o salida; el monto total es
+                                cashflow real y solo el principal reduce la deuda.
                             </Typography>
                         </Box>
 
@@ -294,14 +466,19 @@ export function PaymentForm({
                             <Alert severity="error">{submitErrorMessage}</Alert>
                         ) : null}
 
+                        <Alert severity="info">
+                            {getCashflowSummary(resolvedCashflowDirection)}
+                        </Alert>
+
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <WorkspaceDebtSelect
                                     workspaceId={workspaceId}
                                     value={values.debtId}
                                     onChange={handleDebtChange}
+                                    onSelectedDebtChange={handleSelectedDebtChange}
                                     label="Deuda"
-                                    helperText="Selecciona la deuda relacionada con este pago."
+                                    helperText="Selecciona la deuda relacionada con este pago o cobro."
                                     error={Boolean(errors.debtId)}
                                     allowEmpty={false}
                                 />
@@ -309,11 +486,14 @@ export function PaymentForm({
 
                             <Grid size={{ xs: 12, md: 3 }}>
                                 <TextField
-                                    label="Monto"
+                                    label="Monto total movido"
                                     value={values.amount}
-                                    onChange={handleTextChange("amount")}
+                                    onChange={handleAmountChange}
                                     error={Boolean(errors.amount)}
-                                    helperText={errors.amount}
+                                    helperText={
+                                        errors.amount ??
+                                        "Dinero real que salió o entró."
+                                    }
                                     fullWidth
                                 />
                             </Grid>
@@ -335,6 +515,34 @@ export function PaymentForm({
                                         <FormHelperText>{errors.currency}</FormHelperText>
                                     ) : null}
                                 </FormControl>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <TextField
+                                    label="Monto que reduce deuda"
+                                    value={values.principalAmount}
+                                    onChange={handleTextChange("principalAmount")}
+                                    error={Boolean(errors.principalAmount)}
+                                    helperText={
+                                        errors.principalAmount ??
+                                        "Principal aplicado al saldo pendiente."
+                                    }
+                                    fullWidth
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <TextField
+                                    label="Cargos/intereses/comisiones"
+                                    value={values.feeAmount}
+                                    onChange={handleTextChange("feeAmount")}
+                                    error={Boolean(errors.feeAmount)}
+                                    helperText={
+                                        errors.feeAmount ??
+                                        "No reducen la deuda; ya vienen dentro del monto total."
+                                    }
+                                    fullWidth
+                                />
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 4 }}>
@@ -391,11 +599,11 @@ export function PaymentForm({
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <FormControl fullWidth>
                                     <InputLabel id="payment-source-type-label">
-                                        Fuente del pago
+                                        Fuente/recepción
                                     </InputLabel>
                                     <Select
                                         labelId="payment-source-type-label"
-                                        label="Fuente del pago"
+                                        label="Fuente/recepción"
                                         value={sourceType}
                                         onChange={handleSourceTypeChange}
                                     >
@@ -412,8 +620,10 @@ export function PaymentForm({
                                         workspaceId={workspaceId}
                                         value={values.accountId}
                                         onChange={handleAccountChange}
-                                        label="Cuenta"
-                                        helperText="Selecciona la cuenta desde donde salió el pago."
+                                        label={getAccountLabel(resolvedCashflowDirection)}
+                                        helperText={getAccountHelperText(
+                                            resolvedCashflowDirection
+                                        )}
                                         error={Boolean(errors.accountId)}
                                         allowEmpty={false}
                                     />
@@ -426,8 +636,8 @@ export function PaymentForm({
                                         workspaceId={workspaceId}
                                         value={values.cardId}
                                         onChange={handleCardChange}
-                                        label="Tarjeta"
-                                        helperText="Selecciona la tarjeta usada para este pago."
+                                        label="Tarjeta usada como medio"
+                                        helperText="Opcionalmente vincula la tarjeta usada como medio del pago/cobro."
                                         error={Boolean(errors.cardId)}
                                         allowEmpty={false}
                                     />
@@ -451,10 +661,12 @@ export function PaymentForm({
                                     workspaceId={workspaceId}
                                     value={values.transactionId}
                                     onChange={handleTransactionChange}
-                                    label="Transacción"
-                                    helperText="Opcional. Vincula este pago con una transacción existente."
+                                    label="Transacción debt_payment"
+                                    helperText="Opcional. Vincula este pago con una transacción de deuda existente para la misma deuda."
                                     allowEmpty
                                     emptyOptionLabel="Sin transacción específica"
+                                    typeFilter="debt_payment"
+                                    debtIdFilter={values.debtId.trim() || "ALL"}
                                 />
                             </Grid>
 

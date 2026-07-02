@@ -1,4 +1,8 @@
 // src/features/dashboard/components/DashboardTopCategories.tsx
+// Expense-only category ranking for the dashboard.
+// Fase 4 note: this component intentionally receives category-breakdown data
+// requested with type="expense", so income categories such as Salario do not
+// appear as top spending categories.
 
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
@@ -31,16 +35,16 @@ export function DashboardTopCategories({
             <Stack spacing={2}>
                 <Stack spacing={0.5}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        Top categorías
+                        Top categorías de gasto
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                        Principales categorías por monto dentro del filtro actual.
+                        Principales gastos por monto dentro del filtro actual.
                     </Typography>
                 </Stack>
 
                 {topCategories.length === 0 ? (
                     <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                        No hay categorías con actividad en el periodo seleccionado.
+                        No hay categorías de gasto con actividad en el periodo seleccionado.
                     </Typography>
                 ) : (
                     <Stack spacing={1.5}>

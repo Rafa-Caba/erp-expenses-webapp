@@ -1,4 +1,7 @@
 // src/features/transactions/pages/EditTransactionPage.tsx
+// Edit transaction page.
+// Keeps debtId/cashflowDirection aligned for debt_payment transactions and
+// clears debt-only fields when the type is not debt_payment.
 
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -48,6 +51,8 @@ function toTransactionFormValues(
         cardId: transaction.cardId ?? "",
         memberId: transaction.memberId,
         categoryId: transaction.categoryId ?? "",
+        debtId: transaction.debtId ?? "",
+        cashflowDirection: transaction.cashflowDirection ?? "",
         type: transaction.type,
         amount: String(transaction.amount),
         currency: transaction.currency,
@@ -67,12 +72,18 @@ function toTransactionFormValues(
 function toUpdateTransactionPayload(
     values: TransactionFormValues
 ): UpdateTransactionPayload {
+    const isDebtPayment = values.type === "debt_payment";
+
     return {
         accountId: values.accountId.trim() || null,
-        destinationAccountId: values.destinationAccountId.trim() || null,
-        cardId: values.cardId.trim() || null,
+        destinationAccountId: isDebtPayment
+            ? null
+            : values.destinationAccountId.trim() || null,
+        cardId: isDebtPayment ? null : values.cardId.trim() || null,
         memberId: values.memberId.trim(),
-        categoryId: values.categoryId.trim() || null,
+        categoryId: isDebtPayment ? null : values.categoryId.trim() || null,
+        debtId: isDebtPayment ? values.debtId.trim() || null : null,
+        cashflowDirection: isDebtPayment ? values.cashflowDirection || null : null,
         type: values.type,
         amount: Number(values.amount),
         currency: values.currency,

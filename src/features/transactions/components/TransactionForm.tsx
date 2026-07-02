@@ -1,4 +1,11 @@
 // src/features/transactions/components/TransactionForm.tsx
+// Transaction form.
+// Fase 5 rule for debt_payment:
+// - Select a debt.
+// - The selected debt determines cashflowDirection.
+// - owed_by_me => out, account where money went out.
+// - owed_to_me => in, account where money was received.
+// - cardId is not required for debt_payment; the debt is the destination.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -20,8 +27,11 @@ import Typography from "@mui/material/Typography";
 import { WorkspaceAccountSelect } from "../../components/WorkspaceAccountSelect";
 import { WorkspaceCardSelect } from "../../components/WorkspaceCardSelect";
 import { WorkspaceCategorySelect } from "../../components/WorkspaceCategorySelect";
+import { WorkspaceDebtSelect } from "../../components/WorkspaceDebtSelect";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
+import type { DebtRecord } from "../../debts/types/debt.types";
 import type {
+    CashflowDirection,
     CurrencyCode,
     TransactionType,
 } from "../../../shared/types/common.types";
@@ -35,6 +45,8 @@ export type TransactionFormValues = {
     cardId: string;
     memberId: string;
     categoryId: string;
+    debtId: string;
+    cashflowDirection: CashflowDirection | "";
     type: TransactionType;
     amount: string;
     currency: CurrencyCode;
@@ -56,6 +68,7 @@ type TransactionFormField =
     | "cardId"
     | "memberId"
     | "categoryId"
+    | "debtId"
     | "amount"
     | "description"
     | "transactionDate"
@@ -95,6 +108,42 @@ function requiresCategory(type: TransactionType): boolean {
     return type === "expense" || type === "income" || type === "adjustment";
 }
 
+function getDebtCashflowDirection(debt: DebtRecord | null): CashflowDirection | "" {
+    if (!debt) {
+        return "";
+    }
+
+    return debt.type === "owed_by_me" ? "out" : "in";
+}
+
+function getDebtPaymentSummary(direction: CashflowDirection | ""): string {
+    if (direction === "out") {
+        return "Esta transacción será salida porque la deuda seleccionada es de tipo Debo.";
+    }
+
+    if (direction === "in") {
+        return "Esta transacción será entrada porque la deuda seleccionada es de tipo Me deben.";
+    }
+
+    return "Selecciona una deuda para que la app determine si el movimiento es entrada o salida.";
+}
+
+function getDebtPaymentAccountLabel(direction: CashflowDirection | ""): string {
+    if (direction === "in") {
+        return "Cuenta donde recibiste el dinero";
+    }
+
+    return "Cuenta desde donde salió el dinero";
+}
+
+function getDebtPaymentAccountHelperText(direction: CashflowDirection | ""): string {
+    if (direction === "in") {
+        return "Cuenta donde cayó el cobro de una deuda que te debían.";
+    }
+
+    return "Cuenta desde donde pagaste una deuda propia.";
+}
+
 function validateAmount(value: string): string | null {
     if (!value.trim()) {
         return "El monto es obligatorio.";
@@ -102,7 +151,7 @@ function validateAmount(value: string): string | null {
 
     const numericValue = Number(value);
 
-    if (Number.isNaN(numericValue)) {
+    if (!Number.isFinite(numericValue)) {
         return "El monto debe ser numérico.";
     }
 
@@ -161,12 +210,12 @@ function validateTransactionForm(
     }
 
     if (values.type === "debt_payment") {
-        if (!values.accountId.trim()) {
-            errors.accountId = "La cuenta es obligatoria para pagos de deuda.";
+        if (!values.debtId.trim()) {
+            errors.debtId = "La deuda es obligatoria para pagos/cobros de deuda.";
         }
 
-        if (!values.cardId.trim()) {
-            errors.cardId = "La tarjeta es obligatoria para pagos de deuda.";
+        if (!values.accountId.trim()) {
+            errors.accountId = "La cuenta es obligatoria para pagos/cobros de deuda.";
         }
     }
 
@@ -205,6 +254,8 @@ function clearFieldsForType(
             ...values,
             cardId: "",
             categoryId: "",
+            debtId: "",
+            cashflowDirection: "",
         };
     }
 
@@ -212,6 +263,7 @@ function clearFieldsForType(
         return {
             ...values,
             destinationAccountId: "",
+            cardId: "",
             categoryId: "",
         };
     }
@@ -219,6 +271,8 @@ function clearFieldsForType(
     return {
         ...values,
         destinationAccountId: "",
+        debtId: "",
+        cashflowDirection: "",
         accountId: sourceType === "account" ? values.accountId : "",
         cardId: sourceType === "card" ? values.cardId : "",
     };
@@ -237,11 +291,15 @@ export function TransactionForm({
     const [errors, setErrors] = React.useState<TransactionFormErrors>({});
     const [standardSourceType, setStandardSourceType] =
         React.useState<StandardSourceType>(resolveStandardSourceType(initialValues));
+    const [selectedDebt, setSelectedDebt] = React.useState<DebtRecord | null>(null);
 
     React.useEffect(() => {
         setValues(initialValues);
         setStandardSourceType(resolveStandardSourceType(initialValues));
     }, [initialValues]);
+
+    const resolvedDebtPaymentDirection =
+        getDebtCashflowDirection(selectedDebt) || values.cashflowDirection;
 
     const handleTextChange =
         (field: TransactionFormTextField) =>
@@ -328,6 +386,26 @@ export function TransactionForm({
         }));
     };
 
+    const handleDebtChange = (value: string) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            debtId: value,
+        }));
+    };
+
+    const handleSelectedDebtChange = React.useCallback((debt: DebtRecord | null) => {
+        setSelectedDebt(debt);
+
+        if (!debt) {
+            return;
+        }
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            cashflowDirection: getDebtCashflowDirection(debt),
+        }));
+    }, []);
+
     const handleAccountChange = (value: string) => {
         setValues((currentValues) => ({
             ...currentValues,
@@ -369,8 +447,13 @@ export function TransactionForm({
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        const nextValues: TransactionFormValues = {
+            ...values,
+            cashflowDirection:
+                values.type === "debt_payment" ? resolvedDebtPaymentDirection : "",
+        };
         const nextErrors = validateTransactionForm(
-            values,
+            nextValues,
             standardSourceType,
             mode
         );
@@ -381,7 +464,7 @@ export function TransactionForm({
             return;
         }
 
-        onSubmit(values);
+        onSubmit(nextValues);
     };
 
     const showsStandardSourceSelector =
@@ -404,13 +487,20 @@ export function TransactionForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                El formulario ajusta las fuentes y campos visibles según el
-                                tipo de transacción para evitar combinaciones inválidas.
+                                El formulario ajusta fuentes y campos visibles según el tipo.
+                                En pagos/cobros de deuda, la deuda seleccionada define si el
+                                cashflow es entrada o salida.
                             </Typography>
                         </Box>
 
                         {submitErrorMessage ? (
                             <Alert severity="error">{submitErrorMessage}</Alert>
+                        ) : null}
+
+                        {values.type === "debt_payment" ? (
+                            <Alert severity="info">
+                                {getDebtPaymentSummary(resolvedDebtPaymentDirection)}
+                            </Alert>
                         ) : null}
 
                         <Grid container spacing={2}>
@@ -425,7 +515,7 @@ export function TransactionForm({
                                     >
                                         <MenuItem value="expense">Gasto</MenuItem>
                                         <MenuItem value="income">Ingreso</MenuItem>
-                                        <MenuItem value="debt_payment">Pago de deuda</MenuItem>
+                                        <MenuItem value="debt_payment">Pago/cobro de deuda</MenuItem>
                                         <MenuItem value="transfer">Transferencia</MenuItem>
                                         <MenuItem value="adjustment">Ajuste</MenuItem>
                                     </Select>
@@ -464,7 +554,7 @@ export function TransactionForm({
 
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <TextField
-                                    label="Monto"
+                                    label="Monto total movido"
                                     value={values.amount}
                                     onChange={handleTextChange("amount")}
                                     error={Boolean(errors.amount)}
@@ -535,11 +625,11 @@ export function TransactionForm({
                             {showsStandardSourceSelector ? (
                                 <Grid size={{ xs: 12, md: 4 }}>
                                     <FormControl fullWidth>
-                                        <InputLabel id="transaction-source-type-label">
+                                        <InputLabel id="standard-source-type-label">
                                             Fuente
                                         </InputLabel>
                                         <Select
-                                            labelId="transaction-source-type-label"
+                                            labelId="standard-source-type-label"
                                             label="Fuente"
                                             value={standardSourceType}
                                             onChange={handleStandardSourceTypeChange}
@@ -551,8 +641,7 @@ export function TransactionForm({
                                 </Grid>
                             ) : null}
 
-                            {showsStandardSourceSelector &&
-                                standardSourceType === "account" ? (
+                            {showsStandardSourceSelector && standardSourceType === "account" ? (
                                 <Grid size={{ xs: 12, md: 8 }}>
                                     <WorkspaceAccountSelect
                                         workspaceId={workspaceId}
@@ -566,8 +655,7 @@ export function TransactionForm({
                                 </Grid>
                             ) : null}
 
-                            {showsStandardSourceSelector &&
-                                standardSourceType === "card" ? (
+                            {showsStandardSourceSelector && standardSourceType === "card" ? (
                                 <Grid size={{ xs: 12, md: 8 }}>
                                     <WorkspaceCardSelect
                                         workspaceId={workspaceId}
@@ -612,26 +700,31 @@ export function TransactionForm({
                             {values.type === "debt_payment" ? (
                                 <>
                                     <Grid size={{ xs: 12, md: 6 }}>
-                                        <WorkspaceAccountSelect
+                                        <WorkspaceDebtSelect
                                             workspaceId={workspaceId}
-                                            value={values.accountId}
-                                            onChange={handleAccountChange}
-                                            label="Cuenta"
-                                            helperText="Cuenta usada para el pago de deuda."
+                                            value={values.debtId}
+                                            onChange={handleDebtChange}
+                                            onSelectedDebtChange={handleSelectedDebtChange}
+                                            label="Deuda"
+                                            helperText="Selecciona la deuda que se está pagando o cobrando."
                                             allowEmpty={false}
-                                            error={Boolean(errors.accountId)}
+                                            error={Boolean(errors.debtId)}
                                         />
                                     </Grid>
 
                                     <Grid size={{ xs: 12, md: 6 }}>
-                                        <WorkspaceCardSelect
+                                        <WorkspaceAccountSelect
                                             workspaceId={workspaceId}
-                                            value={values.cardId}
-                                            onChange={handleCardChange}
-                                            label="Tarjeta"
-                                            helperText="Tarjeta relacionada con el pago de deuda."
+                                            value={values.accountId}
+                                            onChange={handleAccountChange}
+                                            label={getDebtPaymentAccountLabel(
+                                                resolvedDebtPaymentDirection
+                                            )}
+                                            helperText={getDebtPaymentAccountHelperText(
+                                                resolvedDebtPaymentDirection
+                                            )}
                                             allowEmpty={false}
-                                            error={Boolean(errors.cardId)}
+                                            error={Boolean(errors.accountId)}
                                         />
                                     </Grid>
                                 </>

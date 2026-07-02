@@ -1,4 +1,8 @@
 // src/features/ledger/services/ledger-api.service.ts
+// Ledger API composition service.
+// It loads the source datasets used to build the ledger view in the frontend.
+// Fase 6 note: no API endpoint change is needed here; the transaction service
+// already returns transaction.cashflowDirection after the previous phases.
 
 import type { AxiosInstance } from "axios";
 
