@@ -1,4 +1,7 @@
-// src/debts/types/debt.types.ts
+// src/features/debts/types/debt.types.ts
+// Frontend debt contracts aligned with the API.
+// Phase 8 adds optional payment plan/installment fields for debts paid or
+// collected through scheduled installments.
 
 import type {
     CurrencyCode,
@@ -9,6 +12,7 @@ import type { CollectionResponse, EntityResponse } from "../../../shared/types/a
 
 export type DebtType = "owed_by_me" | "owed_to_me";
 export type DebtStatus = "active" | "paid" | "overdue" | "cancelled";
+export type DebtInstallmentFrequency = "weekly" | "biweekly" | "monthly" | "yearly";
 
 export interface DebtRecord {
     _id: string;
@@ -25,6 +29,14 @@ export interface DebtRecord {
     startDate: IsoDateString;
     dueDate: Nullable<IsoDateString>;
     status: DebtStatus;
+    paymentPlanEnabled: boolean;
+    installmentAmount: Nullable<number>;
+    installmentFrequency: Nullable<DebtInstallmentFrequency>;
+    totalInstallments: Nullable<number>;
+    paidInstallments: Nullable<number>;
+    remainingInstallments: Nullable<number>;
+    paymentDay: Nullable<number>;
+    nextDueDate: Nullable<IsoDateString>;
     notes: Nullable<string>;
     isVisible: boolean;
     createdAt: IsoDateString;
@@ -44,6 +56,13 @@ export interface CreateDebtPayload {
     startDate: string;
     dueDate?: Nullable<string>;
     status?: DebtStatus;
+    paymentPlanEnabled?: boolean;
+    installmentAmount?: Nullable<number>;
+    installmentFrequency?: Nullable<DebtInstallmentFrequency>;
+    totalInstallments?: Nullable<number>;
+    paidInstallments?: Nullable<number>;
+    paymentDay?: Nullable<number>;
+    nextDueDate?: Nullable<string>;
     notes?: Nullable<string>;
     isVisible?: boolean;
 }
@@ -61,6 +80,13 @@ export interface UpdateDebtPayload {
     startDate?: string;
     dueDate?: Nullable<string>;
     status?: DebtStatus;
+    paymentPlanEnabled?: boolean;
+    installmentAmount?: Nullable<number>;
+    installmentFrequency?: Nullable<DebtInstallmentFrequency>;
+    totalInstallments?: Nullable<number>;
+    paidInstallments?: Nullable<number>;
+    paymentDay?: Nullable<number>;
+    nextDueDate?: Nullable<string>;
     notes?: Nullable<string>;
     isVisible?: boolean;
 }

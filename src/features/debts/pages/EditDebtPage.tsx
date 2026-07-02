@@ -143,6 +143,13 @@ function toDebtFormValues(debt: DebtRecord): DebtFormValues {
         startDate: formatIsoDateForInput(debt.startDate),
         dueDate: formatIsoDateForInput(debt.dueDate),
         status: debt.status,
+        paymentPlanEnabled: debt.paymentPlanEnabled ?? false,
+        installmentAmount: debt.installmentAmount === null ? "" : String(debt.installmentAmount),
+        installmentFrequency: debt.installmentFrequency ?? "",
+        totalInstallments: debt.totalInstallments === null ? "" : String(debt.totalInstallments),
+        paidInstallments: debt.paidInstallments === null ? "0" : String(debt.paidInstallments),
+        paymentDay: debt.paymentDay === null ? "" : String(debt.paymentDay),
+        nextDueDate: formatIsoDateForInput(debt.nextDueDate),
         notes: debt.notes ?? "",
         isVisible: debt.isVisible,
     };
@@ -150,6 +157,14 @@ function toDebtFormValues(debt: DebtRecord): DebtFormValues {
 
 function parseRequiredAmount(value: string): number {
     return Number(value.trim());
+}
+
+function parseOptionalAmount(value: string): number | null {
+    return value.trim().length > 0 ? Number(value.trim()) : null;
+}
+
+function parseOptionalInteger(value: string): number | null {
+    return value.trim().length > 0 ? Math.trunc(Number(value.trim())) : null;
 }
 
 function toRequiredCurrencyCode(value: DebtFormValues["currency"]): CurrencyCode {
@@ -174,6 +189,25 @@ function toUpdateDebtPayload(values: DebtFormValues): UpdateDebtPayload {
         startDate: values.startDate,
         dueDate: values.dueDate.trim() || null,
         status: values.status,
+        paymentPlanEnabled: values.paymentPlanEnabled,
+        installmentAmount: values.paymentPlanEnabled
+            ? parseOptionalAmount(values.installmentAmount)
+            : null,
+        installmentFrequency: values.paymentPlanEnabled
+            ? values.installmentFrequency || null
+            : null,
+        totalInstallments: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.totalInstallments)
+            : null,
+        paidInstallments: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.paidInstallments) ?? 0
+            : null,
+        paymentDay: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.paymentDay)
+            : null,
+        nextDueDate: values.paymentPlanEnabled
+            ? values.nextDueDate.trim() || null
+            : null,
         notes: values.notes.trim() || null,
         isVisible: values.isVisible,
     };
@@ -336,7 +370,7 @@ export function EditDebtPage() {
     return (
         <Page
             title="Editar deuda"
-            subtitle="Actualiza la información, estado y visibilidad de la deuda."
+            subtitle="Actualiza la información, estado, plan de pagos y visibilidad de la deuda."
         >
             <DebtForm
                 mode="edit"

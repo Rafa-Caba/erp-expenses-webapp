@@ -1,4 +1,5 @@
 // src/features/debts/components/DebtCard.tsx
+// Debt card. Phase 8 displays payment plan/installment data when enabled.
 
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -9,7 +10,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { DebtRecord } from "../types/debt.types";
+import type { DebtInstallmentFrequency, DebtRecord } from "../types/debt.types";
 import { DebtStatusChip } from "./DebtStatusChip";
 import { DebtTypeChip } from "./DebtTypeChip";
 import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
@@ -51,6 +52,25 @@ function formatDateValue(value: string | null): string {
     }
 }
 
+function getInstallmentFrequencyLabel(value: DebtInstallmentFrequency | null): string {
+    switch (value) {
+        case "weekly":
+            return "Semanal";
+        case "biweekly":
+            return "Quincenal";
+        case "monthly":
+            return "Mensual";
+        case "yearly":
+            return "Anual";
+        default:
+            return "—";
+    }
+}
+
+function formatOptionalNumber(value: number | null): string {
+    return value === null ? "—" : String(value);
+}
+
 export function DebtCard({
     debt,
     accountName,
@@ -58,11 +78,12 @@ export function DebtCard({
     onEdit,
     onDelete,
 }: DebtCardProps) {
-
     const memberLabel = useWorkspaceMemberLabelById(
         debt.workspaceId,
         debt.memberId
     ).label;
+
+    const hasPaymentPlan = debt.paymentPlanEnabled;
 
     return (
         <Card
@@ -78,6 +99,9 @@ export function DebtCard({
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <DebtTypeChip type={debt.type} />
                     <DebtStatusChip status={debt.status} />
+                    {hasPaymentPlan ? (
+                        <Chip size="small" color="info" variant="outlined" label="Plan de pagos" />
+                    ) : null}
                     <Chip
                         size="small"
                         variant="outlined"
@@ -112,6 +136,47 @@ export function DebtCard({
                         <strong>Moneda:</strong> {debt.currency}
                     </Typography>
                 </Stack>
+
+                {hasPaymentPlan ? (
+                    <>
+                        <Divider />
+
+                        <Stack spacing={0.75}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                Plan de pagos
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Pago esperado:</strong>{" "}
+                                {debt.installmentAmount === null
+                                    ? "—"
+                                    : formatCurrencyAmount(debt.installmentAmount, debt.currency)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Frecuencia:</strong>{" "}
+                                {getInstallmentFrequencyLabel(debt.installmentFrequency)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Mensualidades:</strong>{" "}
+                                {formatOptionalNumber(debt.paidInstallments)} pagadas /{" "}
+                                {formatOptionalNumber(debt.totalInstallments)} totales /{" "}
+                                {formatOptionalNumber(debt.remainingInstallments)} restantes
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Día de pago:</strong>{" "}
+                                {formatOptionalNumber(debt.paymentDay)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Siguiente pago:</strong>{" "}
+                                {formatDateValue(debt.nextDueDate)}
+                            </Typography>
+                        </Stack>
+                    </>
+                ) : null}
 
                 <Divider />
 

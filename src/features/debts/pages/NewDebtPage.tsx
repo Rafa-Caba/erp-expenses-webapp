@@ -81,6 +81,14 @@ function parseRequiredAmount(value: string): number {
     return Number(value.trim());
 }
 
+function parseOptionalAmount(value: string): number | null {
+    return value.trim().length > 0 ? Number(value.trim()) : null;
+}
+
+function parseOptionalInteger(value: string): number | null {
+    return value.trim().length > 0 ? Math.trunc(Number(value.trim())) : null;
+}
+
 function toRequiredCurrencyCode(value: DebtFormValues["currency"]): CurrencyCode {
     if (value === "") {
         throw new Error("Currency is required");
@@ -103,6 +111,25 @@ function toCreateDebtPayload(values: DebtFormValues): CreateDebtPayload {
         startDate: values.startDate,
         dueDate: values.dueDate.trim() || null,
         status: values.status,
+        paymentPlanEnabled: values.paymentPlanEnabled,
+        installmentAmount: values.paymentPlanEnabled
+            ? parseOptionalAmount(values.installmentAmount)
+            : null,
+        installmentFrequency: values.paymentPlanEnabled
+            ? values.installmentFrequency || null
+            : null,
+        totalInstallments: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.totalInstallments)
+            : null,
+        paidInstallments: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.paidInstallments) ?? 0
+            : null,
+        paymentDay: values.paymentPlanEnabled
+            ? parseOptionalInteger(values.paymentDay)
+            : null,
+        nextDueDate: values.paymentPlanEnabled
+            ? values.nextDueDate.trim() || null
+            : null,
         notes: values.notes.trim() || null,
         isVisible: values.isVisible,
     };
@@ -225,6 +252,13 @@ export function NewDebtPage() {
         startDate: "",
         dueDate: "",
         status: "active",
+        paymentPlanEnabled: false,
+        installmentAmount: "",
+        installmentFrequency: "monthly",
+        totalInstallments: "",
+        paidInstallments: "0",
+        paymentDay: "",
+        nextDueDate: "",
         notes: "",
         isVisible: true,
     };

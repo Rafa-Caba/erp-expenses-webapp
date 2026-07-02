@@ -1,4 +1,8 @@
 // src/features/debts/components/DebtForm.tsx
+// Debt create/edit form.
+// Phase 8 adds an optional payment plan section for debts with installments:
+// total installments, paid installments, remaining installments, expected amount,
+// frequency, payment day, and next due date.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -7,6 +11,7 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Checkbox from "@mui/material/Checkbox";
+import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormHelperText from "@mui/material/FormHelperText";
@@ -20,7 +25,11 @@ import Typography from "@mui/material/Typography";
 
 import type { CurrencyCode } from "../../../shared/types/common.types";
 import { WorkspaceMemberSelect } from "../../components/WorkspaceMemberSelect";
-import type { DebtStatus, DebtType } from "../types/debt.types";
+import type {
+    DebtInstallmentFrequency,
+    DebtStatus,
+    DebtType,
+} from "../types/debt.types";
 
 export type DebtAccountOption = {
     id: string;
@@ -35,6 +44,7 @@ export type DebtCurrencyOption = {
 };
 
 type DebtFormCurrency = CurrencyCode | "";
+type DebtFormInstallmentFrequency = DebtInstallmentFrequency | "";
 
 export type DebtFormValues = {
     memberId: string;
@@ -49,6 +59,13 @@ export type DebtFormValues = {
     startDate: string;
     dueDate: string;
     status: DebtStatus;
+    paymentPlanEnabled: boolean;
+    installmentAmount: string;
+    installmentFrequency: DebtFormInstallmentFrequency;
+    totalInstallments: string;
+    paidInstallments: string;
+    paymentDay: string;
+    nextDueDate: string;
     notes: string;
     isVisible: boolean;
 };
@@ -61,7 +78,13 @@ type DebtFormField =
     | "currency"
     | "description"
     | "startDate"
-    | "dueDate";
+    | "dueDate"
+    | "installmentAmount"
+    | "installmentFrequency"
+    | "totalInstallments"
+    | "paidInstallments"
+    | "paymentDay"
+    | "nextDueDate";
 
 type DebtFormErrors = Partial<Record<DebtFormField, string>>;
 
@@ -73,6 +96,11 @@ type DebtFormTextField =
     | "description"
     | "startDate"
     | "dueDate"
+    | "installmentAmount"
+    | "totalInstallments"
+    | "paidInstallments"
+    | "paymentDay"
+    | "nextDueDate"
     | "notes";
 
 type DebtFormProps = {
@@ -113,6 +141,77 @@ function validateRequiredAmount(
     }
 
     return null;
+}
+
+function validateOptionalPositiveAmount(value: string, label: string): string | null {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+        return null;
+    }
+
+    const numericValue = Number(trimmedValue);
+
+    if (!Number.isFinite(numericValue)) {
+        return `${label} debe ser un número válido.`;
+    }
+
+    if (numericValue <= 0) {
+        return `${label} debe ser mayor a cero.`;
+    }
+
+    return null;
+}
+
+function validateRequiredInteger(value: string, label: string): string | null {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+        return `${label} es obligatorio.`;
+    }
+
+    const numericValue = Number(trimmedValue);
+
+    if (!Number.isInteger(numericValue)) {
+        return `${label} debe ser un número entero.`;
+    }
+
+    if (numericValue < 0) {
+        return `${label} no puede ser negativo.`;
+    }
+
+    return null;
+}
+
+function validateOptionalPaymentDay(value: string): string | null {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+        return null;
+    }
+
+    const numericValue = Number(trimmedValue);
+
+    if (!Number.isInteger(numericValue)) {
+        return "El día de pago debe ser un número entero.";
+    }
+
+    if (numericValue < 1 || numericValue > 31) {
+        return "El día de pago debe estar entre 1 y 31.";
+    }
+
+    return null;
+}
+
+function getRemainingInstallments(values: DebtFormValues): number | null {
+    const totalInstallments = Number(values.totalInstallments);
+    const paidInstallments = Number(values.paidInstallments);
+
+    if (!Number.isInteger(totalInstallments) || !Number.isInteger(paidInstallments)) {
+        return null;
+    }
+
+    return Math.max(0, totalInstallments - paidInstallments);
 }
 
 function validateDebtForm(values: DebtFormValues): DebtFormErrors {
@@ -176,7 +275,86 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
         }
     }
 
+    if (values.paymentPlanEnabled) {
+        const installmentAmountError = validateRequiredAmount(
+            values.installmentAmount,
+            "El monto por mensualidad",
+            false
+        );
+        if (installmentAmountError) {
+            errors.installmentAmount = installmentAmountError;
+        }
+
+        if (!values.installmentFrequency) {
+            errors.installmentFrequency = "La frecuencia es obligatoria.";
+        }
+
+        const totalInstallmentsError = validateRequiredInteger(
+            values.totalInstallments,
+            "El total de mensualidades"
+        );
+        if (totalInstallmentsError) {
+            errors.totalInstallments = totalInstallmentsError;
+        } else if (Number(values.totalInstallments) <= 0) {
+            errors.totalInstallments = "El total de mensualidades debe ser mayor a 0.";
+        }
+
+        const paidInstallmentsError = validateRequiredInteger(
+            values.paidInstallments,
+            "Las mensualidades pagadas"
+        );
+        if (paidInstallmentsError) {
+            errors.paidInstallments = paidInstallmentsError;
+        }
+
+        if (!totalInstallmentsError && !paidInstallmentsError) {
+            const totalInstallments = Number(values.totalInstallments);
+            const paidInstallments = Number(values.paidInstallments);
+
+            if (paidInstallments > totalInstallments) {
+                errors.paidInstallments =
+                    "Las mensualidades pagadas no pueden exceder el total.";
+            }
+        }
+
+        const paymentDayError = validateOptionalPaymentDay(values.paymentDay);
+        if (paymentDayError) {
+            errors.paymentDay = paymentDayError;
+        }
+    } else {
+        const installmentAmountError = validateOptionalPositiveAmount(
+            values.installmentAmount,
+            "El monto por mensualidad"
+        );
+        if (installmentAmountError) {
+            errors.installmentAmount = installmentAmountError;
+        }
+    }
+
+    if (values.nextDueDate.trim() && values.startDate.trim()) {
+        const startDate = new Date(values.startDate);
+        const nextDueDate = new Date(values.nextDueDate);
+
+        if (nextDueDate.getTime() < startDate.getTime()) {
+            errors.nextDueDate =
+                "El siguiente pago no puede ser anterior a la fecha de inicio.";
+        }
+    }
+
     return errors;
+}
+
+function getInstallmentFrequencyLabel(value: DebtInstallmentFrequency): string {
+    switch (value) {
+        case "weekly":
+            return "Semanal";
+        case "biweekly":
+            return "Quincenal";
+        case "monthly":
+            return "Mensual";
+        case "yearly":
+            return "Anual";
+    }
 }
 
 export function DebtForm({
@@ -196,6 +374,8 @@ export function DebtForm({
     React.useEffect(() => {
         setValues(initialValues);
     }, [initialValues]);
+
+    const remainingInstallments = getRemainingInstallments(values);
 
     const handleTextChange =
         (field: DebtFormTextField) =>
@@ -233,6 +413,23 @@ export function DebtForm({
         }
     };
 
+    const handleInstallmentFrequencyChange = (event: SelectChangeEvent<string>) => {
+        const value = event.target.value;
+
+        if (
+            value === "" ||
+            value === "weekly" ||
+            value === "biweekly" ||
+            value === "monthly" ||
+            value === "yearly"
+        ) {
+            setValues((currentValues) => ({
+                ...currentValues,
+                installmentFrequency: value,
+            }));
+        }
+    };
+
     const handleCurrencyChange = (event: SelectChangeEvent<DebtFormCurrency>) => {
         setValues((currentValues) => ({
             ...currentValues,
@@ -256,6 +453,19 @@ export function DebtForm({
         setValues((currentValues) => ({
             ...currentValues,
             memberId: value,
+        }));
+    };
+
+    const handlePaymentPlanEnabledChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const checked = event.target.checked;
+
+        setValues((currentValues) => ({
+            ...currentValues,
+            paymentPlanEnabled: checked,
+            installmentFrequency: checked ? currentValues.installmentFrequency || "monthly" : "",
+            paidInstallments: checked ? currentValues.paidInstallments || "0" : "",
         }));
     };
 
@@ -290,8 +500,7 @@ export function DebtForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Registra deudas por pagar o por cobrar, vinculándolas
-                                opcionalmente a un miembro y una cuenta del workspace.
+                                Registra deudas por pagar o por cobrar. Si la deuda se paga en mensualidades, activa el plan de pagos para llevar control de totales, pagadas, restantes y siguiente vencimiento.
                             </Typography>
                         </Box>
 
@@ -442,7 +651,7 @@ export function DebtForm({
 
                             <Grid size={{ xs: 12 }}>
                                 <TextField
-                                    label="Nombre de la Deuda"
+                                    label="Nombre de la deuda"
                                     value={values.description}
                                     onChange={handleTextChange("description")}
                                     error={Boolean(errors.description)}
@@ -479,7 +688,138 @@ export function DebtForm({
                                     InputLabelProps={{ shrink: true }}
                                 />
                             </Grid>
+                        </Grid>
 
+                        <Divider />
+
+                        <Stack spacing={2}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={values.paymentPlanEnabled}
+                                        onChange={handlePaymentPlanEnabledChange}
+                                    />
+                                }
+                                label="Activar plan de pagos / mensualidades"
+                            />
+
+                            {values.paymentPlanEnabled ? (
+                                <Alert severity="info">
+                                    Plan activo: {remainingInstallments ?? "—"} pago(s) restantes. Estos campos son de control; los pagos reales siguen registrándose desde Pagos o Transacciones.
+                                </Alert>
+                            ) : null}
+
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Monto por pago"
+                                        value={values.installmentAmount}
+                                        onChange={handleTextChange("installmentAmount")}
+                                        error={Boolean(errors.installmentAmount)}
+                                        helperText={
+                                            errors.installmentAmount ??
+                                            "Ejemplo: mensualidad del carro o abono esperado."
+                                        }
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <FormControl
+                                        fullWidth
+                                        error={Boolean(errors.installmentFrequency)}
+                                        disabled={!values.paymentPlanEnabled}
+                                    >
+                                        <InputLabel id="installment-frequency-label">
+                                            Frecuencia
+                                        </InputLabel>
+                                        <Select
+                                            labelId="installment-frequency-label"
+                                            label="Frecuencia"
+                                            value={values.installmentFrequency}
+                                            onChange={handleInstallmentFrequencyChange}
+                                        >
+                                            <MenuItem value="">
+                                                <em>Sin frecuencia</em>
+                                            </MenuItem>
+                                            {(["weekly", "biweekly", "monthly", "yearly"] as DebtInstallmentFrequency[]).map((frequency) => (
+                                                <MenuItem key={frequency} value={frequency}>
+                                                    {getInstallmentFrequencyLabel(frequency)}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        {errors.installmentFrequency ? (
+                                            <FormHelperText>{errors.installmentFrequency}</FormHelperText>
+                                        ) : null}
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Día de pago"
+                                        value={values.paymentDay}
+                                        onChange={handleTextChange("paymentDay")}
+                                        error={Boolean(errors.paymentDay)}
+                                        helperText={errors.paymentDay ?? "Opcional. 1 a 31."}
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Mensualidades totales"
+                                        value={values.totalInstallments}
+                                        onChange={handleTextChange("totalInstallments")}
+                                        error={Boolean(errors.totalInstallments)}
+                                        helperText={errors.totalInstallments}
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Mensualidades pagadas"
+                                        value={values.paidInstallments}
+                                        onChange={handleTextChange("paidInstallments")}
+                                        error={Boolean(errors.paidInstallments)}
+                                        helperText={errors.paidInstallments}
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Mensualidades restantes"
+                                        value={remainingInstallments === null ? "—" : String(remainingInstallments)}
+                                        helperText="Calculado: totales - pagadas."
+                                        disabled
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <TextField
+                                        label="Siguiente pago"
+                                        type="date"
+                                        value={values.nextDueDate}
+                                        onChange={handleTextChange("nextDueDate")}
+                                        error={Boolean(errors.nextDueDate)}
+                                        helperText={errors.nextDueDate ?? "Opcional. Próxima fecha esperada."}
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Stack>
+
+                        <Divider />
+
+                        <Grid container spacing={2}>
                             <Grid size={{ xs: 12 }}>
                                 <TextField
                                     label="Notas"
