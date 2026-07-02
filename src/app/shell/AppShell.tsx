@@ -21,6 +21,7 @@ import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
+import SubscriptionsOutlinedIcon from "@mui/icons-material/SubscriptionsOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -146,7 +147,7 @@ export function AppShell() {
             label: "Transacciones",
             to: `${scopeBase}/transactions`,
             icon: <SwapHorizOutlinedIcon />,
-            showInBottom: false,
+            showInBottom: true,
         },
         {
             label: "Recibos",
@@ -164,12 +165,18 @@ export function AppShell() {
             label: "Conciliación",
             to: `${scopeBase}/reconciliation`,
             icon: <FactCheckIcon />,
-            showInBottom: true,
+            showInBottom: false,
         },
         {
             label: "Reminders",
             to: `${scopeBase}/reminders`,
             icon: <NotificationsActiveOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
+            label: "Suscripciones",
+            to: `${scopeBase}/subscriptions`,
+            icon: <SubscriptionsOutlinedIcon />,
             showInBottom: false,
         },
         {

@@ -70,7 +70,11 @@ export type WorkspacePermission =
     | "reports.read"
     | "reports.create"
     | "reports.update"
-    | "reports.delete";
+    | "reports.delete"
+    | "subscriptions.read"
+    | "subscriptions.create"
+    | "subscriptions.update"
+    | "subscriptions.delete";
 
 export type TransactionType =
     | "expense"

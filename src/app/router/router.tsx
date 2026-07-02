@@ -62,6 +62,9 @@ import { EditReminderPage } from "../../features/reminders/pages/EditReminderPag
 import { ReportsPage } from "../../features/reports/pages/ReportsPage";
 import { NewReportPage } from "../../features/reports/pages/NewReportPage";
 import { EditReportPage } from "../../features/reports/pages/EditReportPage";
+import { SubscriptionsPage } from "../../features/subscriptions/pages/SubscriptionsPage";
+import { NewSubscriptionPage } from "../../features/subscriptions/pages/NewSubscriptionPage";
+import { EditSubscriptionPage } from "../../features/subscriptions/pages/EditSubscriptionPage";
 
 export const router = createBrowserRouter([
     { path: "/", element: <HomeRedirect /> },
@@ -158,6 +161,12 @@ export const router = createBrowserRouter([
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
                             },
+                            { path: "subscriptions", element: <SubscriptionsPage /> },
+                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
+                            {
+                                path: "subscriptions/:subscriptionId/edit",
+                                element: <EditSubscriptionPage />,
+                            },
                             { path: "reports", element: <ReportsPage /> },
                             { path: "reports/new", element: <NewReportPage /> },
                             {
@@ -220,6 +229,12 @@ export const router = createBrowserRouter([
                             {
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
+                            },
+                            { path: "subscriptions", element: <SubscriptionsPage /> },
+                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
+                            {
+                                path: "subscriptions/:subscriptionId/edit",
+                                element: <EditSubscriptionPage />,
                             },
                             { path: "reports", element: <ReportsPage /> },
                             { path: "reports/new", element: <NewReportPage /> },
