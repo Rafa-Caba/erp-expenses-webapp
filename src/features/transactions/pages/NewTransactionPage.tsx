@@ -1,7 +1,12 @@
 // src/features/transactions/pages/NewTransactionPage.tsx
 // New transaction page.
-// For debt_payment transactions, debtId and cashflowDirection are sent so the
-// API can classify debt payments as outflow and debt collections as inflow.
+// Normalizes cashflowDirection before sending the API payload.
+// Rules:
+// - expense => out
+// - income => in
+// - debt_payment => resolved by selected debt in TransactionForm
+// - transfer => null
+// - adjustment => in/out by amount sign when needed
 
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -9,6 +14,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import {
     TransactionForm,
     type TransactionFormValues,
@@ -58,6 +64,32 @@ const INITIAL_VALUES: TransactionFormValues = {
     createdByUserId: "",
 };
 
+function resolveTransactionCashflowDirection(
+    values: TransactionFormValues
+): CreateTransactionPayload["cashflowDirection"] {
+    if (values.type === "expense") {
+        return "out";
+    }
+
+    if (values.type === "income") {
+        return "in";
+    }
+
+    if (values.type === "debt_payment") {
+        return values.cashflowDirection || null;
+    }
+
+    if (values.type === "transfer") {
+        return null;
+    }
+
+    if (values.type === "adjustment") {
+        return Number(values.amount) >= 0 ? "in" : "out";
+    }
+
+    return null;
+}
+
 function toCreateTransactionPayload(
     values: TransactionFormValues
 ): CreateTransactionPayload {
@@ -72,7 +104,7 @@ function toCreateTransactionPayload(
         memberId: values.memberId.trim(),
         categoryId: isDebtPayment ? null : values.categoryId.trim() || null,
         debtId: isDebtPayment ? values.debtId.trim() || null : null,
-        cashflowDirection: isDebtPayment ? values.cashflowDirection || null : null,
+        cashflowDirection: resolveTransactionCashflowDirection(values),
         type: values.type,
         amount: Number(values.amount),
         currency: values.currency,
@@ -91,17 +123,6 @@ function toCreateTransactionPayload(
     };
 }
 
-function getTransactionErrorMessage(
-    error: Error | null,
-    fallbackMessage: string
-): string {
-    if (!error) {
-        return fallbackMessage;
-    }
-
-    return error.message || fallbackMessage;
-}
-
 export function NewTransactionPage() {
     const navigate = useNavigate();
 
@@ -117,7 +138,7 @@ export function NewTransactionPage() {
     const transactionsBasePath = getTransactionsBasePath(scopeType, workspaceId);
 
     const submitErrorMessage = createTransactionMutation.isError
-        ? getTransactionErrorMessage(
+        ? getApiErrorMessage(
             createTransactionMutation.error,
             "No se pudo crear la transacción."
         )

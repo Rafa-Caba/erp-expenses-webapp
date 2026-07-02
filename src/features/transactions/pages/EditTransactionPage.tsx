@@ -1,7 +1,12 @@
 // src/features/transactions/pages/EditTransactionPage.tsx
 // Edit transaction page.
-// Keeps debtId/cashflowDirection aligned for debt_payment transactions and
-// clears debt-only fields when the type is not debt_payment.
+// Normalizes cashflowDirection before sending the API payload.
+// Rules:
+// - expense => out
+// - income => in
+// - debt_payment => resolved by selected debt in TransactionForm
+// - transfer => null
+// - adjustment => in/out by amount sign when needed
 
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -12,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import {
     TransactionForm,
     type TransactionFormValues,
@@ -40,6 +46,32 @@ function getTransactionsBasePath(
 
 function toDateInputValue(value: string): string {
     return value.slice(0, 10);
+}
+
+function resolveTransactionCashflowDirection(
+    values: TransactionFormValues
+): UpdateTransactionPayload["cashflowDirection"] {
+    if (values.type === "expense") {
+        return "out";
+    }
+
+    if (values.type === "income") {
+        return "in";
+    }
+
+    if (values.type === "debt_payment") {
+        return values.cashflowDirection || null;
+    }
+
+    if (values.type === "transfer") {
+        return null;
+    }
+
+    if (values.type === "adjustment") {
+        return Number(values.amount) >= 0 ? "in" : "out";
+    }
+
+    return null;
 }
 
 function toTransactionFormValues(
@@ -83,7 +115,7 @@ function toUpdateTransactionPayload(
         memberId: values.memberId.trim(),
         categoryId: isDebtPayment ? null : values.categoryId.trim() || null,
         debtId: isDebtPayment ? values.debtId.trim() || null : null,
-        cashflowDirection: isDebtPayment ? values.cashflowDirection || null : null,
+        cashflowDirection: resolveTransactionCashflowDirection(values),
         type: values.type,
         amount: Number(values.amount),
         currency: values.currency,
@@ -99,17 +131,6 @@ function toUpdateTransactionPayload(
             : null,
         isVisible: values.isVisible,
     };
-}
-
-function getTransactionErrorMessage(
-    error: Error | null,
-    fallbackMessage: string
-): string {
-    if (!error) {
-        return fallbackMessage;
-    }
-
-    return error.message || fallbackMessage;
 }
 
 export function EditTransactionPage() {
@@ -158,7 +179,7 @@ export function EditTransactionPage() {
         return (
             <Page title="Editar transacción" subtitle="No fue posible cargar la transacción.">
                 <Alert severity="error">
-                    {getTransactionErrorMessage(
+                    {getApiErrorMessage(
                         transactionQuery.error,
                         "No se pudo obtener la transacción."
                     )}
@@ -168,7 +189,7 @@ export function EditTransactionPage() {
     }
 
     const submitErrorMessage = updateTransactionMutation.isError
-        ? getTransactionErrorMessage(
+        ? getApiErrorMessage(
             updateTransactionMutation.error,
             "No se pudo actualizar la transacción."
         )
