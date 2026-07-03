@@ -1,6 +1,7 @@
 // src/features/subscriptions/components/SubscriptionForm.tsx
 // Subscription create/edit form.
 // Phase 9A records recurring expenses separately from debt payment plans.
+// Phase 9B enables controlled due-subscription generation from the subscriptions page.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -228,7 +229,12 @@ export function SubscriptionForm({
     const handleBillingFrequencyChange = (event: SelectChangeEvent<string>) => {
         const value = event.target.value;
 
-        if (value === "weekly" || value === "biweekly" || value === "monthly" || value === "yearly") {
+        if (
+            value === "weekly" ||
+            value === "biweekly" ||
+            value === "monthly" ||
+            value === "yearly"
+        ) {
             setValues((currentValues) => ({
                 ...currentValues,
                 billingFrequency: value,
@@ -353,7 +359,12 @@ export function SubscriptionForm({
                                 <WorkspaceMemberSelect
                                     workspaceId={workspaceId}
                                     value={values.memberId}
-                                    onChange={(memberId) => setValues((currentValues) => ({ ...currentValues, memberId }))}
+                                    onChange={(memberId) =>
+                                        setValues((currentValues) => ({
+                                            ...currentValues,
+                                            memberId,
+                                        }))
+                                    }
                                     label="Miembro"
                                     helperText="Miembro responsable o relacionado con esta suscripción."
                                     allowEmpty={false}
@@ -365,7 +376,12 @@ export function SubscriptionForm({
                                 <WorkspaceCategorySelect
                                     workspaceId={workspaceId}
                                     value={values.categoryId}
-                                    onChange={(categoryId) => setValues((currentValues) => ({ ...currentValues, categoryId }))}
+                                    onChange={(categoryId) =>
+                                        setValues((currentValues) => ({
+                                            ...currentValues,
+                                            categoryId,
+                                        }))
+                                    }
                                     transactionType="expense"
                                     label="Categoría de gasto"
                                     helperText="Se usa al crear la transacción del cobro."
@@ -394,7 +410,12 @@ export function SubscriptionForm({
                                     <WorkspaceAccountSelect
                                         workspaceId={workspaceId}
                                         value={values.accountId}
-                                        onChange={(accountId) => setValues((currentValues) => ({ ...currentValues, accountId }))}
+                                        onChange={(accountId) =>
+                                            setValues((currentValues) => ({
+                                                ...currentValues,
+                                                accountId,
+                                            }))
+                                        }
                                         label="Cuenta de cobro"
                                         helperText="Cuenta de donde normalmente sale el cargo."
                                         allowEmpty={false}
@@ -408,7 +429,12 @@ export function SubscriptionForm({
                                     <WorkspaceCardSelect
                                         workspaceId={workspaceId}
                                         value={values.cardId}
-                                        onChange={(cardId) => setValues((currentValues) => ({ ...currentValues, cardId }))}
+                                        onChange={(cardId) =>
+                                            setValues((currentValues) => ({
+                                                ...currentValues,
+                                                cardId,
+                                            }))
+                                        }
                                         label="Tarjeta de cobro"
                                         helperText="Tarjeta donde normalmente cae el cargo."
                                         allowEmpty={false}
@@ -505,7 +531,7 @@ export function SubscriptionForm({
                                         onChange={handleBooleanChange("autoCreateTransaction")}
                                     />
                                 }
-                                label="Marcar para auto-generación futura"
+                                label="Incluir en motor de auto-generación"
                             />
 
                             <FormControlLabel
@@ -520,7 +546,7 @@ export function SubscriptionForm({
                         </Stack>
 
                         <Alert severity="info">
-                            En esta fase, el cobro se crea desde el botón “Crear transacción”. La auto-generación silenciosa queda preparada para una fase posterior.
+                            Si activas el motor de auto-generación, esta suscripción aparecerá en “Motor de suscripciones vencidas” cuando llegue su próximo cobro. Desde ahí puedes simular o generar las transacciones vencidas de forma controlada.
                         </Alert>
 
                         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="flex-end">

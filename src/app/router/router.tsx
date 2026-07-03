@@ -136,6 +136,12 @@ export const router = createBrowserRouter([
                             { path: "debts", element: <DebtsPage /> },
                             { path: "debts/new", element: <NewDebtPage /> },
                             { path: "debts/:debtId/edit", element: <EditDebtPage /> },
+                            { path: "subscriptions", element: <SubscriptionsPage /> },
+                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
+                            {
+                                path: "subscriptions/:subscriptionId/edit",
+                                element: <EditSubscriptionPage />,
+                            },
                             { path: "payments", element: <PaymentsPage /> },
                             { path: "payments/new", element: <NewPaymentPage /> },
                             { path: "payments/:paymentId/edit", element: <EditPaymentPage /> },
@@ -160,12 +166,6 @@ export const router = createBrowserRouter([
                             {
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
-                            },
-                            { path: "subscriptions", element: <SubscriptionsPage /> },
-                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
-                            {
-                                path: "subscriptions/:subscriptionId/edit",
-                                element: <EditSubscriptionPage />,
                             },
                             { path: "reports", element: <ReportsPage /> },
                             { path: "reports/new", element: <NewReportPage /> },
@@ -205,6 +205,12 @@ export const router = createBrowserRouter([
                             { path: "debts", element: <DebtsPage /> },
                             { path: "debts/new", element: <NewDebtPage /> },
                             { path: "debts/:debtId/edit", element: <EditDebtPage /> },
+                            { path: "subscriptions", element: <SubscriptionsPage /> },
+                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
+                            {
+                                path: "subscriptions/:subscriptionId/edit",
+                                element: <EditSubscriptionPage />,
+                            },
                             { path: "payments", element: <PaymentsPage /> },
                             { path: "payments/new", element: <NewPaymentPage /> },
                             { path: "payments/:paymentId/edit", element: <EditPaymentPage /> },
@@ -229,12 +235,6 @@ export const router = createBrowserRouter([
                             {
                                 path: "reminders/:reminderId/edit",
                                 element: <EditReminderPage />,
-                            },
-                            { path: "subscriptions", element: <SubscriptionsPage /> },
-                            { path: "subscriptions/new", element: <NewSubscriptionPage /> },
-                            {
-                                path: "subscriptions/:subscriptionId/edit",
-                                element: <EditSubscriptionPage />,
                             },
                             { path: "reports", element: <ReportsPage /> },
                             { path: "reports/new", element: <NewReportPage /> },

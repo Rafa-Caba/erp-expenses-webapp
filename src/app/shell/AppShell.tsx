@@ -138,6 +138,12 @@ export function AppShell() {
             showInBottom: false,
         },
         {
+            label: "Suscripciones",
+            to: `${scopeBase}/subscriptions`,
+            icon: <SubscriptionsOutlinedIcon />,
+            showInBottom: false,
+        },
+        {
             label: "Pagos",
             to: `${scopeBase}/payments`,
             icon: <PaymentsOutlinedIcon />,
@@ -171,12 +177,6 @@ export function AppShell() {
             label: "Reminders",
             to: `${scopeBase}/reminders`,
             icon: <NotificationsActiveOutlinedIcon />,
-            showInBottom: false,
-        },
-        {
-            label: "Suscripciones",
-            to: `${scopeBase}/subscriptions`,
-            icon: <SubscriptionsOutlinedIcon />,
             showInBottom: false,
         },
         {
