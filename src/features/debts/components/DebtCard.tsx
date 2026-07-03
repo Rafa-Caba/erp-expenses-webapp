@@ -1,5 +1,7 @@
 // src/features/debts/components/DebtCard.tsx
 // Debt card. Phase 8 displays payment plan/installment data when enabled.
+// Payment plan labels use "pagos" instead of "mensualidades" because debts can
+// be weekly, biweekly/quincenal, monthly, yearly, or any scheduled payment plan.
 
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -159,8 +161,8 @@ export function DebtCard({
                             </Typography>
 
                             <Typography variant="body2">
-                                <strong>Mensualidades:</strong>{" "}
-                                {formatOptionalNumber(debt.paidInstallments)} pagadas /{" "}
+                                <strong>Pagos:</strong>{" "}
+                                {formatOptionalNumber(debt.paidInstallments)} realizados /{" "}
                                 {formatOptionalNumber(debt.totalInstallments)} totales /{" "}
                                 {formatOptionalNumber(debt.remainingInstallments)} restantes
                             </Typography>

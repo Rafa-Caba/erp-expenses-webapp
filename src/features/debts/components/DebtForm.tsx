@@ -1,7 +1,7 @@
 // src/features/debts/components/DebtForm.tsx
 // Debt create/edit form.
-// Phase 8 adds an optional payment plan section for debts with installments:
-// total installments, paid installments, remaining installments, expected amount,
+// Phase 8 adds an optional payment plan section for debts with scheduled payments:
+// total payments, completed payments, remaining payments, expected amount,
 // frequency, payment day, and next due date.
 
 import React from "react";
@@ -278,7 +278,7 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
     if (values.paymentPlanEnabled) {
         const installmentAmountError = validateRequiredAmount(
             values.installmentAmount,
-            "El monto por mensualidad",
+            "El monto por pago",
             false
         );
         if (installmentAmountError) {
@@ -291,17 +291,17 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
 
         const totalInstallmentsError = validateRequiredInteger(
             values.totalInstallments,
-            "El total de mensualidades"
+            "El total de pagos"
         );
         if (totalInstallmentsError) {
             errors.totalInstallments = totalInstallmentsError;
         } else if (Number(values.totalInstallments) <= 0) {
-            errors.totalInstallments = "El total de mensualidades debe ser mayor a 0.";
+            errors.totalInstallments = "El total de pagos debe ser mayor a 0.";
         }
 
         const paidInstallmentsError = validateRequiredInteger(
             values.paidInstallments,
-            "Las mensualidades pagadas"
+            "Los pagos realizados"
         );
         if (paidInstallmentsError) {
             errors.paidInstallments = paidInstallmentsError;
@@ -313,7 +313,7 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
 
             if (paidInstallments > totalInstallments) {
                 errors.paidInstallments =
-                    "Las mensualidades pagadas no pueden exceder el total.";
+                    "Los pagos realizados no pueden exceder el total.";
             }
         }
 
@@ -324,7 +324,7 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
     } else {
         const installmentAmountError = validateOptionalPositiveAmount(
             values.installmentAmount,
-            "El monto por mensualidad"
+            "El monto por pago"
         );
         if (installmentAmountError) {
             errors.installmentAmount = installmentAmountError;
@@ -500,7 +500,7 @@ export function DebtForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Registra deudas por pagar o por cobrar. Si la deuda se paga en mensualidades, activa el plan de pagos para llevar control de totales, pagadas, restantes y siguiente vencimiento.
+                                Registra deudas por pagar o por cobrar. Si la deuda se paga en abonos, activa el plan de pagos para llevar control de pagos totales, realizados, restantes y siguiente vencimiento.
                             </Typography>
                         </Box>
 
@@ -700,7 +700,7 @@ export function DebtForm({
                                         onChange={handlePaymentPlanEnabledChange}
                                     />
                                 }
-                                label="Activar plan de pagos / mensualidades"
+                                label="Activar plan de pagos / abonos"
                             />
 
                             {values.paymentPlanEnabled ? (
@@ -718,7 +718,7 @@ export function DebtForm({
                                         error={Boolean(errors.installmentAmount)}
                                         helperText={
                                             errors.installmentAmount ??
-                                            "Ejemplo: mensualidad del carro o abono esperado."
+                                            "Ejemplo: pago del carro, abono quincenal o pago esperado."
                                         }
                                         disabled={!values.paymentPlanEnabled}
                                         fullWidth
@@ -769,7 +769,7 @@ export function DebtForm({
 
                                 <Grid size={{ xs: 12, md: 4 }}>
                                     <TextField
-                                        label="Mensualidades totales"
+                                        label="Pagos totales"
                                         value={values.totalInstallments}
                                         onChange={handleTextChange("totalInstallments")}
                                         error={Boolean(errors.totalInstallments)}
@@ -781,7 +781,7 @@ export function DebtForm({
 
                                 <Grid size={{ xs: 12, md: 4 }}>
                                     <TextField
-                                        label="Mensualidades pagadas"
+                                        label="Pagos realizados"
                                         value={values.paidInstallments}
                                         onChange={handleTextChange("paidInstallments")}
                                         error={Boolean(errors.paidInstallments)}
@@ -793,9 +793,9 @@ export function DebtForm({
 
                                 <Grid size={{ xs: 12, md: 4 }}>
                                     <TextField
-                                        label="Mensualidades restantes"
+                                        label="Pagos restantes"
                                         value={remainingInstallments === null ? "—" : String(remainingInstallments)}
-                                        helperText="Calculado: totales - pagadas."
+                                        helperText="Calculado: pagos totales - pagos realizados."
                                         disabled
                                         fullWidth
                                     />
