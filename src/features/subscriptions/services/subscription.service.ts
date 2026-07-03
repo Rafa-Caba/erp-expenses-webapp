@@ -1,10 +1,13 @@
 // src/features/subscriptions/services/subscription.service.ts
+// HTTP client for subscriptions and the Phase 9B due-subscription processor.
 
 import type { AxiosInstance } from "axios";
 
 import type {
     CreateSubscriptionPayload,
     CreateSubscriptionTransactionPayload,
+    ProcessDueSubscriptionsPayload,
+    ProcessDueSubscriptionsResponse,
     SubscriptionResponse,
     SubscriptionsResponse,
     SubscriptionTransactionResponse,
@@ -74,6 +77,18 @@ export function createSubscriptionService(apiClient: AxiosInstance) {
             return apiClient
                 .post<SubscriptionTransactionResponse>(
                     `/api/workspaces/${workspaceId}/subscriptions/${subscriptionId}/create-transaction`,
+                    payload
+                )
+                .then(({ data }) => data);
+        },
+
+        processDueSubscriptions(
+            workspaceId: string,
+            payload: ProcessDueSubscriptionsPayload
+        ): Promise<ProcessDueSubscriptionsResponse> {
+            return apiClient
+                .post<ProcessDueSubscriptionsResponse>(
+                    `/api/workspaces/${workspaceId}/subscriptions/process-due`,
                     payload
                 )
                 .then(({ data }) => data);

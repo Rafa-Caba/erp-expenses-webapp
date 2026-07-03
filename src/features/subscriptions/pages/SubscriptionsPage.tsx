@@ -1,5 +1,6 @@
 // src/features/subscriptions/pages/SubscriptionsPage.tsx
-// Subscriptions list page with basic filters and reviewed transaction creation.
+// Subscriptions list page with filters, reviewed transaction creation, and
+// Phase 9B controls to preview/generate due subscription transactions.
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,9 +24,14 @@ import { SubscriptionCard } from "../components/SubscriptionCard";
 import {
     useCreateSubscriptionTransactionMutation,
     useDeleteSubscriptionMutation,
+    useProcessDueSubscriptionsMutation,
 } from "../hooks/useSubscriptionMutations";
 import { useSubscriptionsQuery } from "../hooks/useSubscriptionsQuery";
-import type { SubscriptionRecord, SubscriptionStatus } from "../types/subscription.types";
+import type {
+    ProcessDueSubscriptionsResult,
+    SubscriptionRecord,
+    SubscriptionStatus,
+} from "../types/subscription.types";
 
 type StatusFilter = "ALL" | SubscriptionStatus;
 
@@ -39,6 +45,10 @@ function getSubscriptionsBasePath(scopeType: ScopeType, workspaceId: string | nu
     }
 
     return `/app/w/${workspaceId}/subscriptions`;
+}
+
+function getTodayInputValue(): string {
+    return new Date().toISOString().slice(0, 10);
 }
 
 function normalizeText(value: string): string {
@@ -59,6 +69,95 @@ function buildSearchableText(subscription: SubscriptionRecord): string {
         .toLocaleLowerCase();
 }
 
+function isSubscriptionDue(subscription: SubscriptionRecord, asOfDate: string): boolean {
+    if (
+        subscription.status !== "active" ||
+        !subscription.autoCreateTransaction ||
+        !subscription.isVisible
+    ) {
+        return false;
+    }
+
+    const nextBillingTimestamp = new Date(subscription.nextBillingDate).getTime();
+    const asOfTimestamp = new Date(`${asOfDate}T23:59:59.999`).getTime();
+
+    return nextBillingTimestamp <= asOfTimestamp;
+}
+
+function formatProcessDate(value: string): string {
+    return new Intl.DateTimeFormat("es-MX", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+    }).format(new Date(value));
+}
+
+function getProcessActionLabel(action: ProcessDueSubscriptionsResult["items"][number]["action"]): string {
+    switch (action) {
+        case "would_create":
+            return "Se crearía";
+        case "created":
+            return "Creada";
+        case "skipped_duplicate":
+            return "Duplicado evitado";
+        case "skipped_end_date":
+            return "Fuera de vigencia";
+        case "skipped_inactive":
+            return "Inactiva";
+    }
+}
+
+function ProcessDueResultCard({ result }: { result: ProcessDueSubscriptionsResult }) {
+    return (
+        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+            <Stack spacing={1.5}>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    Resultado del motor de suscripciones
+                </Typography>
+
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Modo: {result.dryRun ? "Simulación" : "Escritura"} • Corte: {formatProcessDate(result.asOfDate)} • Vencidas: {result.dueCount} • Generadas: {result.generatedCount} • Omitidas: {result.skippedCount}
+                </Typography>
+
+                {result.items.length === 0 ? (
+                    <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                        No hay suscripciones vencidas para procesar con ese corte.
+                    </Typography>
+                ) : (
+                    <Stack spacing={1}>
+                        {result.items.map((item) => (
+                            <Paper
+                                key={`${item.subscriptionId}-${item.scheduledBillingDate}-${item.action}`}
+                                variant="outlined"
+                                sx={{ p: 1.5, borderRadius: 2 }}
+                            >
+                                <Stack spacing={0.5}>
+                                    <Typography sx={{ fontWeight: 700 }}>
+                                        {item.subscriptionName} — {getProcessActionLabel(item.action)}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                        Programada: {formatProcessDate(item.scheduledBillingDate)} • Siguiente: {formatProcessDate(item.nextBillingDate)}
+                                    </Typography>
+                                    {item.transactionId ? (
+                                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                            Transacción: {item.transactionId}
+                                        </Typography>
+                                    ) : null}
+                                    {item.reason ? (
+                                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                            {item.reason}
+                                        </Typography>
+                                    ) : null}
+                                </Stack>
+                            </Paper>
+                        ))}
+                    </Stack>
+                )}
+            </Stack>
+        </Paper>
+    );
+}
+
 export function SubscriptionsPage() {
     const navigate = useNavigate();
     const scopeType = useScopeStore((state) => state.scopeType);
@@ -68,10 +167,12 @@ export function SubscriptionsPage() {
     const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
     const [includeHidden, setIncludeHidden] = React.useState(false);
     const [selectedSubscriptionId, setSelectedSubscriptionId] = React.useState<string | null>(null);
+    const [processAsOfDate, setProcessAsOfDate] = React.useState(getTodayInputValue());
 
     const subscriptionsQuery = useSubscriptionsQuery(workspaceId);
     const deleteSubscriptionMutation = useDeleteSubscriptionMutation();
     const createTransactionMutation = useCreateSubscriptionTransactionMutation();
+    const processDueMutation = useProcessDueSubscriptionsMutation();
 
     const subscriptionsBasePath = getSubscriptionsBasePath(scopeType, workspaceId);
 
@@ -95,6 +196,14 @@ export function SubscriptionsPage() {
             return buildSearchableText(subscription).includes(normalizedSearchTerm);
         });
     }, [includeHidden, searchTerm, statusFilter, subscriptionsQuery.data?.subscriptions]);
+
+    const dueSubscriptions = React.useMemo(() => {
+        const subscriptions = subscriptionsQuery.data?.subscriptions ?? [];
+
+        return subscriptions.filter((subscription) =>
+            isSubscriptionDue(subscription, processAsOfDate)
+        );
+    }, [processAsOfDate, subscriptionsQuery.data?.subscriptions]);
 
     const isLoading = subscriptionsQuery.isLoading;
     const isError = subscriptionsQuery.isError;
@@ -134,6 +243,31 @@ export function SubscriptionsPage() {
         });
     };
 
+    const handleProcessDue = (dryRun: boolean) => {
+        if (!workspaceId) {
+            return;
+        }
+
+        if (!dryRun) {
+            const confirmed = window.confirm(
+                `Se generarán transacciones para ${dueSubscriptions.length} suscripción(es) vencida(s). ¿Continuar?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        processDueMutation.mutate({
+            workspaceId,
+            payload: {
+                asOfDate: processAsOfDate,
+                dryRun,
+                limit: 50,
+            },
+        });
+    };
+
     return (
         <Page
             title="Suscripciones"
@@ -149,6 +283,7 @@ export function SubscriptionsPage() {
                         Nueva suscripción
                     </Button>
                 </Stack>
+
                 <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
                     <Stack spacing={2}>
                         <Stack
@@ -193,6 +328,51 @@ export function SubscriptionsPage() {
                     </Stack>
                 </Paper>
 
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+                    <Stack spacing={2}>
+                        <Stack spacing={0.5}>
+                            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                                Motor de suscripciones vencidas
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.75 }}>
+                                Procesa suscripciones activas, visibles y con auto-generación activa. Primero puedes simular; después generas las transacciones reales.
+                            </Typography>
+                        </Stack>
+
+                        <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            spacing={2}
+                            alignItems={{ xs: "stretch", md: "center" }}
+                        >
+                            <TextField
+                                label="Fecha de corte"
+                                type="date"
+                                value={processAsOfDate}
+                                onChange={(event) => setProcessAsOfDate(event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ minWidth: 220 }}
+                            />
+                            <Typography variant="body2" sx={{ opacity: 0.8, flex: 1 }}>
+                                {dueSubscriptions.length} suscripción(es) vencida(s) con auto-generación activa.
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                disabled={processDueMutation.isPending}
+                                onClick={() => handleProcessDue(true)}
+                            >
+                                Simular vencidas
+                            </Button>
+                            <Button
+                                variant="contained"
+                                disabled={processDueMutation.isPending || dueSubscriptions.length === 0}
+                                onClick={() => handleProcessDue(false)}
+                            >
+                                Generar vencidas
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </Paper>
+
                 {createTransactionMutation.isError ? (
                     <Alert severity="error">
                         {getApiErrorMessage(
@@ -209,6 +389,25 @@ export function SubscriptionsPage() {
                             "No se pudo eliminar la suscripción."
                         )}
                     </Alert>
+                ) : null}
+
+                {processDueMutation.isError ? (
+                    <Alert severity="error">
+                        {getApiErrorMessage(
+                            processDueMutation.error,
+                            "No se pudieron procesar las suscripciones vencidas."
+                        )}
+                    </Alert>
+                ) : null}
+
+                {processDueMutation.isSuccess ? (
+                    <Alert severity={processDueMutation.data.result.dryRun ? "info" : "success"}>
+                        {processDueMutation.data.message}
+                    </Alert>
+                ) : null}
+
+                {processDueMutation.data ? (
+                    <ProcessDueResultCard result={processDueMutation.data.result} />
                 ) : null}
 
                 {isLoading ? (

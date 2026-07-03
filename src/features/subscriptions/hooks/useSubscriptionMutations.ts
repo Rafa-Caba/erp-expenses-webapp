@@ -1,4 +1,6 @@
 // src/features/subscriptions/hooks/useSubscriptionMutations.ts
+// React Query mutations for subscriptions. Phase 9B adds a mutation to preview
+// or generate due subscription transactions through the recurring engine.
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -9,6 +11,8 @@ import { createSubscriptionService } from "../services/subscription.service";
 import type {
     CreateSubscriptionPayload,
     CreateSubscriptionTransactionPayload,
+    ProcessDueSubscriptionsPayload,
+    ProcessDueSubscriptionsResponse,
     SubscriptionResponse,
     SubscriptionTransactionResponse,
     UpdateSubscriptionPayload,
@@ -36,6 +40,11 @@ type CreateSubscriptionTransactionMutationPayload = {
     workspaceId: string;
     subscriptionId: string;
     payload: CreateSubscriptionTransactionPayload;
+};
+
+type ProcessDueSubscriptionsMutationPayload = {
+    workspaceId: string;
+    payload: ProcessDueSubscriptionsPayload;
 };
 
 export function useCreateSubscriptionMutation() {
@@ -112,6 +121,26 @@ export function useCreateSubscriptionTransactionMutation() {
                 ),
                 response.subscription
             );
+        },
+    });
+}
+
+export function useProcessDueSubscriptionsMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ProcessDueSubscriptionsResponse,
+        Error,
+        ProcessDueSubscriptionsMutationPayload
+    >({
+        mutationFn: ({ workspaceId, payload }) =>
+            subscriptionService.processDueSubscriptions(workspaceId, payload),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries({ queryKey: subscriptionQueryKeys.all });
+
+            if (!response.result.dryRun && response.result.generatedCount > 0) {
+                queryClient.invalidateQueries({ queryKey: transactionQueryKeys.all });
+            }
         },
     });
 }

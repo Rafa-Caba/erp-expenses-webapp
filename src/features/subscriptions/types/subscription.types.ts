@@ -2,6 +2,8 @@
 // Frontend contracts for subscriptions/recurring expenses.
 // Phase 9A keeps subscriptions separate from debts and allows creating one
 // reviewed expense transaction from a subscription.
+// Phase 9B adds process-due contracts for previewing/generating due
+// subscription transactions in a controlled way.
 
 import type {
     CurrencyCode,
@@ -13,6 +15,12 @@ import type { TransactionRecord, TransactionStatus } from "../../transactions/ty
 
 export type SubscriptionStatus = "active" | "paused" | "cancelled";
 export type SubscriptionBillingFrequency = "weekly" | "biweekly" | "monthly" | "yearly";
+export type SubscriptionProcessDueAction =
+    | "would_create"
+    | "created"
+    | "skipped_duplicate"
+    | "skipped_end_date"
+    | "skipped_inactive";
 
 export interface SubscriptionRecord {
     _id: string;
@@ -87,10 +95,41 @@ export interface CreateSubscriptionTransactionPayload {
     notes?: Nullable<string>;
 }
 
+export interface ProcessDueSubscriptionsPayload {
+    asOfDate?: string;
+    dryRun?: boolean;
+    limit?: number;
+}
+
+export interface ProcessDueSubscriptionItem {
+    subscriptionId: string;
+    subscriptionName: string;
+    scheduledBillingDate: IsoDateString;
+    nextBillingDate: IsoDateString;
+    action: SubscriptionProcessDueAction;
+    reason: Nullable<string>;
+    transactionId: Nullable<string>;
+}
+
+export interface ProcessDueSubscriptionsResult {
+    dryRun: boolean;
+    asOfDate: IsoDateString;
+    scannedCount: number;
+    dueCount: number;
+    generatedCount: number;
+    skippedCount: number;
+    items: ProcessDueSubscriptionItem[];
+}
+
 export interface SubscriptionTransactionResponse {
     message: string;
     subscription: SubscriptionRecord;
     transaction: TransactionRecord;
+}
+
+export interface ProcessDueSubscriptionsResponse {
+    message: string;
+    result: ProcessDueSubscriptionsResult;
 }
 
 export type SubscriptionsResponse = CollectionResponse<"subscriptions", SubscriptionRecord>;

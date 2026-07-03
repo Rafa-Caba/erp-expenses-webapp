@@ -1,5 +1,6 @@
 // src/features/subscriptions/components/SubscriptionCard.tsx
 // Subscription card with quick action to create a reviewed expense transaction.
+// Phase 9B highlights due subscriptions so the recurring engine status is visible.
 
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -85,6 +86,17 @@ function getStatusColor(status: SubscriptionStatus): "success" | "warning" | "de
     return "default";
 }
 
+function isSubscriptionDue(subscription: SubscriptionRecord): boolean {
+    if (subscription.status !== "active" || !subscription.autoCreateTransaction) {
+        return false;
+    }
+
+    const nextBillingTimestamp = new Date(subscription.nextBillingDate).getTime();
+    const todayEndTimestamp = new Date().setHours(23, 59, 59, 999);
+
+    return nextBillingTimestamp <= todayEndTimestamp;
+}
+
 function getSourceLabel(args: {
     subscription: SubscriptionRecord;
     accountLabel: string | null;
@@ -127,6 +139,7 @@ export function SubscriptionCard({
         subscription.workspaceId,
         subscription.cardId
     ).label;
+    const subscriptionIsDue = isSubscriptionDue(subscription);
 
     return (
         <Card
@@ -145,9 +158,16 @@ export function SubscriptionCard({
                         color={getStatusColor(subscription.status)}
                         label={getStatusLabel(subscription.status)}
                     />
-                    <Chip size="small" variant="outlined" label={getFrequencyLabel(subscription.billingFrequency)} />
+                    <Chip
+                        size="small"
+                        variant="outlined"
+                        label={getFrequencyLabel(subscription.billingFrequency)}
+                    />
                     {subscription.autoCreateTransaction ? (
-                        <Chip size="small" color="info" variant="outlined" label="Auto futuro" />
+                        <Chip size="small" color="info" variant="outlined" label="Auto activo" />
+                    ) : null}
+                    {subscriptionIsDue ? (
+                        <Chip size="small" color="warning" label="Vencida" />
                     ) : null}
                     <Chip
                         size="small"
