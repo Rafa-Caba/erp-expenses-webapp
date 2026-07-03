@@ -1,6 +1,11 @@
 // src/features/auth/pages/LoginPage.tsx
+// Login page.
+// Aligns frontend validation with the API, normalizes email, shows friendly
+// Spanish API errors, and avoids raw Axios messages such as
+// "Request failed with status code 401".
 
 import React from "react";
+import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,19 +21,28 @@ import Typography from "@mui/material/Typography";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
-import { useLoginMutation } from "../hooks/useAuthMutations";
+import type {
+    ApiErrorResponse,
+    ApiValidationErrorResponse,
+} from "../../../shared/types/api.types";
+import { getApiErrorMessage } from "../../../shared/utils/get-api-error-message.util";
 import { AuthPageCard } from "../components/AuthPageCard";
-import type { AuthSuccessResponse } from "../types/auth.types";
+import { useLoginMutation } from "../hooks/useAuthMutations";
+import type { AuthSuccessResponse, LoginPayload } from "../types/auth.types";
 
 const loginSchema = z.object({
-    email: z.string().trim().email("Correo inválido"),
-    password: z.string().min(6, "Mínimo 6 caracteres"),
+    email: z
+        .string()
+        .trim()
+        .min(1, "El correo es obligatorio.")
+        .email("Ingresa un correo válido."),
+    password: z.string().min(1, "La contraseña es obligatoria."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-function readRedirectPath(state: object | null): string | null {
-    if (!state || !("from" in state)) {
+function readRedirectPath(state: unknown): string | null {
+    if (!state || typeof state !== "object" || !("from" in state)) {
         return null;
     }
 
@@ -45,12 +59,37 @@ function readRedirectPath(state: object | null): string | null {
     return candidate;
 }
 
+function toLoginPayload(values: LoginFormValues): LoginPayload {
+    return {
+        email: values.email.trim().toLocaleLowerCase(),
+        password: values.password,
+    };
+}
+
 function getLoginErrorMessage(error: Error | null): string {
     if (!error) {
-        return "";
+        return "No se pudo iniciar sesión.";
     }
 
-    return error.message || "No se pudo iniciar sesión. Revisa tus credenciales.";
+    if (axios.isAxiosError<ApiErrorResponse | ApiValidationErrorResponse>(error)) {
+        const statusCode = error.response?.status;
+        const responseData = error.response?.data;
+        const responseCode =
+            responseData && "code" in responseData ? responseData.code : undefined;
+
+        if (statusCode === 401 || responseCode === "INVALID_CREDENTIALS") {
+            return "Correo o contraseña incorrectos.";
+        }
+
+        if (statusCode === 403 || responseCode === "USER_INACTIVE") {
+            return "Tu usuario está inactivo. Contacta al administrador del workspace.";
+        }
+    }
+
+    return getApiErrorMessage(
+        error,
+        "No se pudo iniciar sesión. Revisa tus datos e intenta de nuevo."
+    );
 }
 
 function buildVerificationSentPath(email: string): string {
@@ -64,6 +103,10 @@ function buildVerificationSentPath(email: string): string {
 function resolvePostLoginRoute(response: AuthSuccessResponse, redirectTo: string): string {
     if (!response.user.isEmailVerified) {
         return buildVerificationSentPath(response.user.email);
+    }
+
+    if (response.user.mustChangePassword) {
+        return "/auth/force-change-password";
     }
 
     return redirectTo;
@@ -82,17 +125,12 @@ export function LoginPage() {
             email: "",
             password: "",
         },
+        mode: "onBlur",
     });
 
     const onSubmit = form.handleSubmit(async (values) => {
-        const response = await loginMutation.mutateAsync(values);
-
-        const locationState =
-            typeof location.state === "object" && location.state !== null
-                ? location.state
-                : null;
-
-        const redirectTo = readRedirectPath(locationState) ?? "/app/personal/dashboard";
+        const response = await loginMutation.mutateAsync(toLoginPayload(values));
+        const redirectTo = readRedirectPath(location.state) ?? "/app/personal/dashboard";
         const nextRoute = resolvePostLoginRoute(response, redirectTo);
 
         navigate(nextRoute, { replace: true });
@@ -161,12 +199,15 @@ export function LoginPage() {
             <Box
                 component="form"
                 onSubmit={onSubmit}
+                noValidate
                 sx={{ display: "flex", flexDirection: "column", gap: 2 }}
             >
                 <TextField
                     label="Correo"
                     type="email"
                     autoComplete="email"
+                    fullWidth
+                    disabled={loginMutation.isPending}
                     {...form.register("email")}
                     error={Boolean(form.formState.errors.email)}
                     helperText={form.formState.errors.email?.message}
@@ -176,6 +217,8 @@ export function LoginPage() {
                     label="Contraseña"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
+                    fullWidth
+                    disabled={loginMutation.isPending}
                     {...form.register("password")}
                     error={Boolean(form.formState.errors.password)}
                     helperText={form.formState.errors.password?.message}
@@ -193,6 +236,7 @@ export function LoginPage() {
                                                 ? "Ocultar contraseña"
                                                 : "Mostrar contraseña"
                                         }
+                                        disabled={loginMutation.isPending}
                                     >
                                         {showPassword ? (
                                             <VisibilityOffIcon />
@@ -206,16 +250,15 @@ export function LoginPage() {
                     }}
                 />
 
-                <Stack direction="column" spacing={1}>
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        disabled={loginMutation.isPending}
-                    >
-                        {loginMutation.isPending ? "Entrando..." : "Entrar"}
-                    </Button>
-                </Stack>
+                <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    disabled={loginMutation.isPending}
+                    sx={{ mt: 0.5 }}
+                >
+                    {loginMutation.isPending ? "Entrando…" : "Entrar"}
+                </Button>
             </Box>
         </AuthPageCard>
     );
