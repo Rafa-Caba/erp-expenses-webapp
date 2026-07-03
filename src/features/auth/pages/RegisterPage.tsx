@@ -145,7 +145,7 @@ export function RegisterPage() {
                         </Button>
                     </Typography>
 
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    {/* <Typography variant="body2" sx={{ opacity: 0.8 }}>
                         ¿No te llegó el correo de verificación?{" "}
                         <Button
                             variant="text"
@@ -160,7 +160,7 @@ export function RegisterPage() {
                         >
                             Reenviarlo
                         </Button>
-                    </Typography>
+                    </Typography> */}
                 </Stack>
             }
         >
@@ -280,7 +280,7 @@ export function RegisterPage() {
                     helperText={form.formState.errors.phone?.message}
                 />
 
-                <Button
+                {/* <Button
                     type="submit"
                     variant="contained"
                     size="large"
@@ -288,7 +288,7 @@ export function RegisterPage() {
                     sx={{ mt: 0.5 }}
                 >
                     {registerMutation.isPending ? "Creando cuenta…" : "Crear cuenta"}
-                </Button>
+                </Button> */}
             </Box>
         </AuthPageCard>
     );

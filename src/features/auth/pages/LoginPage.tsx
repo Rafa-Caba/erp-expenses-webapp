@@ -143,7 +143,7 @@ export function LoginPage() {
             errorMessage={loginMutation.isError ? getLoginErrorMessage(loginMutation.error) : null}
             footer={
                 <Stack spacing={1}>
-                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    {/* <Typography variant="body2" sx={{ opacity: 0.8 }}>
                         ¿Aún no tienes cuenta?{" "}
                         <Button
                             variant="text"
@@ -158,7 +158,7 @@ export function LoginPage() {
                         >
                             Crear cuenta
                         </Button>
-                    </Typography>
+                    </Typography> */}
 
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
                         ¿Olvidaste tu contraseña?{" "}
