@@ -1,7 +1,5 @@
 // src/features/debts/components/DebtCard.tsx
-// Debt card. Phase 8 displays payment plan/installment data when enabled.
-// Payment plan labels use "pagos" instead of "mensualidades" because debts can
-// be weekly, biweekly/quincenal, monthly, yearly, or any scheduled payment plan.
+// Debt card. Phase 10 displays payment automation data when enabled.
 
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -12,10 +10,10 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 import type { DebtInstallmentFrequency, DebtRecord } from "../types/debt.types";
 import { DebtStatusChip } from "./DebtStatusChip";
 import { DebtTypeChip } from "./DebtTypeChip";
-import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 
 type DebtCardProps = {
     debt: DebtRecord;
@@ -59,6 +57,8 @@ function getInstallmentFrequencyLabel(value: DebtInstallmentFrequency | null): s
         case "weekly":
             return "Semanal";
         case "biweekly":
+            return "Cada 2 semanas";
+        case "semimonthly":
             return "Quincenal";
         case "monthly":
             return "Mensual";
@@ -84,7 +84,6 @@ export function DebtCard({
         debt.workspaceId,
         debt.memberId
     ).label;
-
     const hasPaymentPlan = debt.paymentPlanEnabled;
 
     return (
@@ -101,9 +100,15 @@ export function DebtCard({
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <DebtTypeChip type={debt.type} />
                     <DebtStatusChip status={debt.status} />
+
                     {hasPaymentPlan ? (
                         <Chip size="small" color="info" variant="outlined" label="Plan de pagos" />
                     ) : null}
+
+                    {debt.autoGeneratePayments ? (
+                        <Chip size="small" color="warning" variant="outlined" label="Motor activo" />
+                    ) : null}
+
                     <Chip
                         size="small"
                         variant="outlined"
@@ -149,10 +154,24 @@ export function DebtCard({
                             </Typography>
 
                             <Typography variant="body2">
-                                <strong>Pago esperado:</strong>{" "}
+                                <strong>Monto total por pago:</strong>{" "}
                                 {debt.installmentAmount === null
                                     ? "—"
                                     : formatCurrencyAmount(debt.installmentAmount, debt.currency)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Principal esperado:</strong>{" "}
+                                {debt.expectedPrincipalAmount === null
+                                    ? "—"
+                                    : formatCurrencyAmount(debt.expectedPrincipalAmount, debt.currency)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Cargos esperados:</strong>{" "}
+                                {debt.expectedFeeAmount === null
+                                    ? "—"
+                                    : formatCurrencyAmount(debt.expectedFeeAmount, debt.currency)}
                             </Typography>
 
                             <Typography variant="body2">
@@ -175,6 +194,11 @@ export function DebtCard({
                             <Typography variant="body2">
                                 <strong>Siguiente pago:</strong>{" "}
                                 {formatDateValue(debt.nextDueDate)}
+                            </Typography>
+
+                            <Typography variant="body2">
+                                <strong>Último pago generado:</strong>{" "}
+                                {debt.lastGeneratedPaymentId ?? "—"}
                             </Typography>
                         </Stack>
                     </>

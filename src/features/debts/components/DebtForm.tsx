@@ -1,8 +1,7 @@
 // src/features/debts/components/DebtForm.tsx
 // Debt create/edit form.
-// Phase 8 adds an optional payment plan section for debts with scheduled payments:
-// total payments, completed payments, remaining payments, expected amount,
-// frequency, payment day, and next due date.
+// Phase 10 adds debt payment-plan automation fields:
+// total payment amount, expected principal, expected fees, auto-generation flag.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -46,6 +45,14 @@ export type DebtCurrencyOption = {
 type DebtFormCurrency = CurrencyCode | "";
 type DebtFormInstallmentFrequency = DebtInstallmentFrequency | "";
 
+const DEBT_FREQUENCY_OPTIONS: DebtInstallmentFrequency[] = [
+    "weekly",
+    "biweekly",
+    "semimonthly",
+    "monthly",
+    "yearly",
+];
+
 export type DebtFormValues = {
     memberId: string;
     relatedAccountId: string;
@@ -61,11 +68,14 @@ export type DebtFormValues = {
     status: DebtStatus;
     paymentPlanEnabled: boolean;
     installmentAmount: string;
+    expectedPrincipalAmount: string;
+    expectedFeeAmount: string;
     installmentFrequency: DebtFormInstallmentFrequency;
     totalInstallments: string;
     paidInstallments: string;
     paymentDay: string;
     nextDueDate: string;
+    autoGeneratePayments: boolean;
     notes: string;
     isVisible: boolean;
 };
@@ -80,11 +90,14 @@ type DebtFormField =
     | "startDate"
     | "dueDate"
     | "installmentAmount"
+    | "expectedPrincipalAmount"
+    | "expectedFeeAmount"
     | "installmentFrequency"
     | "totalInstallments"
     | "paidInstallments"
     | "paymentDay"
-    | "nextDueDate";
+    | "nextDueDate"
+    | "autoGeneratePayments";
 
 type DebtFormErrors = Partial<Record<DebtFormField, string>>;
 
@@ -97,6 +110,8 @@ type DebtFormTextField =
     | "startDate"
     | "dueDate"
     | "installmentAmount"
+    | "expectedPrincipalAmount"
+    | "expectedFeeAmount"
     | "totalInstallments"
     | "paidInstallments"
     | "paymentDay"
@@ -143,7 +158,7 @@ function validateRequiredAmount(
     return null;
 }
 
-function validateOptionalPositiveAmount(value: string, label: string): string | null {
+function validateOptionalNonNegativeAmount(value: string, label: string): string | null {
     const trimmedValue = value.trim();
 
     if (!trimmedValue) {
@@ -156,8 +171,8 @@ function validateOptionalPositiveAmount(value: string, label: string): string | 
         return `${label} debe ser un número válido.`;
     }
 
-    if (numericValue <= 0) {
-        return `${label} debe ser mayor a cero.`;
+    if (numericValue < 0) {
+        return `${label} no puede ser negativo.`;
     }
 
     return null;
@@ -212,6 +227,17 @@ function getRemainingInstallments(values: DebtFormValues): number | null {
     }
 
     return Math.max(0, totalInstallments - paidInstallments);
+}
+
+function getExpectedPrincipalPreview(values: DebtFormValues): string {
+    const installmentAmount = Number(values.installmentAmount);
+    const expectedFeeAmount = Number(values.expectedFeeAmount || "0");
+
+    if (!Number.isFinite(installmentAmount) || !Number.isFinite(expectedFeeAmount)) {
+        return "";
+    }
+
+    return Math.max(0, installmentAmount - expectedFeeAmount).toFixed(2);
 }
 
 function validateDebtForm(values: DebtFormValues): DebtFormErrors {
@@ -278,11 +304,45 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
     if (values.paymentPlanEnabled) {
         const installmentAmountError = validateRequiredAmount(
             values.installmentAmount,
-            "El monto por pago",
+            "El monto total por pago",
             false
         );
         if (installmentAmountError) {
             errors.installmentAmount = installmentAmountError;
+        }
+
+        const principalError = validateOptionalNonNegativeAmount(
+            values.expectedPrincipalAmount,
+            "El principal esperado"
+        );
+        if (principalError) {
+            errors.expectedPrincipalAmount = principalError;
+        }
+
+        const feeError = validateOptionalNonNegativeAmount(
+            values.expectedFeeAmount,
+            "Los cargos esperados"
+        );
+        if (feeError) {
+            errors.expectedFeeAmount = feeError;
+        }
+
+        if (!installmentAmountError && !principalError && !feeError) {
+            const installmentAmount = Number(values.installmentAmount);
+            const expectedPrincipalAmount = values.expectedPrincipalAmount.trim()
+                ? Number(values.expectedPrincipalAmount)
+                : Number(getExpectedPrincipalPreview(values));
+            const expectedFeeAmount = values.expectedFeeAmount.trim()
+                ? Number(values.expectedFeeAmount)
+                : 0;
+
+            if (
+                Number((expectedPrincipalAmount + expectedFeeAmount).toFixed(2)) !==
+                Number(installmentAmount.toFixed(2))
+            ) {
+                errors.expectedPrincipalAmount =
+                    "Principal esperado + cargos esperados debe coincidir con el monto total por pago.";
+            }
         }
 
         if (!values.installmentFrequency) {
@@ -321,14 +381,14 @@ function validateDebtForm(values: DebtFormValues): DebtFormErrors {
         if (paymentDayError) {
             errors.paymentDay = paymentDayError;
         }
-    } else {
-        const installmentAmountError = validateOptionalPositiveAmount(
-            values.installmentAmount,
-            "El monto por pago"
-        );
-        if (installmentAmountError) {
-            errors.installmentAmount = installmentAmountError;
+
+        if (values.autoGeneratePayments && !values.nextDueDate.trim()) {
+            errors.nextDueDate =
+                "Para incluirla en el motor, define la fecha del siguiente pago.";
         }
+    } else if (values.autoGeneratePayments) {
+        errors.autoGeneratePayments =
+            "Para activar el motor de pagos vencidos, primero activa el plan de pagos.";
     }
 
     if (values.nextDueDate.trim() && values.startDate.trim()) {
@@ -349,6 +409,8 @@ function getInstallmentFrequencyLabel(value: DebtInstallmentFrequency): string {
         case "weekly":
             return "Semanal";
         case "biweekly":
+            return "Cada 2 semanas";
+        case "semimonthly":
             return "Quincenal";
         case "monthly":
             return "Mensual";
@@ -376,6 +438,7 @@ export function DebtForm({
     }, [initialValues]);
 
     const remainingInstallments = getRemainingInstallments(values);
+    const expectedPrincipalPreview = getExpectedPrincipalPreview(values);
 
     const handleTextChange =
         (field: DebtFormTextField) =>
@@ -420,6 +483,7 @@ export function DebtForm({
             value === "" ||
             value === "weekly" ||
             value === "biweekly" ||
+            value === "semimonthly" ||
             value === "monthly" ||
             value === "yearly"
         ) {
@@ -466,6 +530,17 @@ export function DebtForm({
             paymentPlanEnabled: checked,
             installmentFrequency: checked ? currentValues.installmentFrequency || "monthly" : "",
             paidInstallments: checked ? currentValues.paidInstallments || "0" : "",
+            expectedFeeAmount: checked ? currentValues.expectedFeeAmount || "0" : "",
+            autoGeneratePayments: checked ? currentValues.autoGeneratePayments : false,
+        }));
+    };
+
+    const handleAutoGeneratePaymentsChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        setValues((currentValues) => ({
+            ...currentValues,
+            autoGeneratePayments: event.target.checked,
         }));
     };
 
@@ -500,7 +575,7 @@ export function DebtForm({
                             </Typography>
 
                             <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                                Registra deudas por pagar o por cobrar. Si la deuda se paga en abonos, activa el plan de pagos para llevar control de pagos totales, realizados, restantes y siguiente vencimiento.
+                                Registra deudas por pagar o por cobrar. Si la deuda se paga en abonos, activa el plan de pagos para llevar control de pagos totales, realizados, restantes, siguiente vencimiento y generación controlada.
                             </Typography>
                         </Box>
 
@@ -551,7 +626,7 @@ export function DebtForm({
                                     value={values.memberId}
                                     onChange={handleMemberChange}
                                     label="Miembro"
-                                    helperText="Opcional. Déjalo vacío si no aplica a un miembro específico."
+                                    helperText="Necesario si quieres generar pagos vencidos desde el motor."
                                     disabled={isSubmitting}
                                     allowEmpty
                                     emptyOptionLabel="Sin miembro específico"
@@ -579,7 +654,7 @@ export function DebtForm({
                                     </Select>
 
                                     <FormHelperText>
-                                        Opcional. Si eliges una cuenta, la moneda se rellena con su moneda.
+                                        Necesaria si quieres generar pagos vencidos desde el motor.
                                     </FormHelperText>
                                 </FormControl>
                             </Grid>
@@ -705,20 +780,50 @@ export function DebtForm({
 
                             {values.paymentPlanEnabled ? (
                                 <Alert severity="info">
-                                    Plan activo: {remainingInstallments ?? "—"} pago(s) restantes. Estos campos son de control; los pagos reales siguen registrándose desde Pagos o Transacciones.
+                                    Plan activo: {remainingInstallments ?? "—"} pago(s) restantes. El motor puede simular o generar pagos vencidos de forma controlada, creando Transaction + Payment y actualizando el saldo de la deuda.
                                 </Alert>
                             ) : null}
 
                             <Grid container spacing={2}>
                                 <Grid size={{ xs: 12, md: 4 }}>
                                     <TextField
-                                        label="Monto por pago"
+                                        label="Monto total por pago"
                                         value={values.installmentAmount}
                                         onChange={handleTextChange("installmentAmount")}
                                         error={Boolean(errors.installmentAmount)}
                                         helperText={
                                             errors.installmentAmount ??
-                                            "Ejemplo: pago del carro, abono quincenal o pago esperado."
+                                            "Cashflow real. Ejemplo: 8309.93 del carro."
+                                        }
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Principal esperado"
+                                        value={values.expectedPrincipalAmount}
+                                        onChange={handleTextChange("expectedPrincipalAmount")}
+                                        error={Boolean(errors.expectedPrincipalAmount)}
+                                        helperText={
+                                            errors.expectedPrincipalAmount ??
+                                            `Reduce deuda. Sugerido: ${expectedPrincipalPreview || "—"}`
+                                        }
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Cargos esperados"
+                                        value={values.expectedFeeAmount}
+                                        onChange={handleTextChange("expectedFeeAmount")}
+                                        error={Boolean(errors.expectedFeeAmount)}
+                                        helperText={
+                                            errors.expectedFeeAmount ??
+                                            "Intereses/comisiones. Usa 0 si no aplica."
                                         }
                                         disabled={!values.paymentPlanEnabled}
                                         fullWidth
@@ -743,15 +848,21 @@ export function DebtForm({
                                             <MenuItem value="">
                                                 <em>Sin frecuencia</em>
                                             </MenuItem>
-                                            {(["weekly", "biweekly", "monthly", "yearly"] as DebtInstallmentFrequency[]).map((frequency) => (
+
+                                            {DEBT_FREQUENCY_OPTIONS.map((frequency) => (
                                                 <MenuItem key={frequency} value={frequency}>
                                                     {getInstallmentFrequencyLabel(frequency)}
                                                 </MenuItem>
                                             ))}
                                         </Select>
+
                                         {errors.installmentFrequency ? (
                                             <FormHelperText>{errors.installmentFrequency}</FormHelperText>
-                                        ) : null}
+                                        ) : (
+                                            <FormHelperText>
+                                                Quincenal usa 15 y fin de mes. Cada 2 semanas usa intervalos de 14 días.
+                                            </FormHelperText>
+                                        )}
                                     </FormControl>
                                 </Grid>
 
@@ -764,6 +875,20 @@ export function DebtForm({
                                         helperText={errors.paymentDay ?? "Opcional. 1 a 31."}
                                         disabled={!values.paymentPlanEnabled}
                                         fullWidth
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, md: 4 }}>
+                                    <TextField
+                                        label="Siguiente pago"
+                                        type="date"
+                                        value={values.nextDueDate}
+                                        onChange={handleTextChange("nextDueDate")}
+                                        error={Boolean(errors.nextDueDate)}
+                                        helperText={errors.nextDueDate ?? "Próxima fecha esperada."}
+                                        disabled={!values.paymentPlanEnabled}
+                                        fullWidth
+                                        InputLabelProps={{ shrink: true }}
                                     />
                                 </Grid>
 
@@ -801,18 +926,25 @@ export function DebtForm({
                                     />
                                 </Grid>
 
-                                <Grid size={{ xs: 12, md: 6 }}>
-                                    <TextField
-                                        label="Siguiente pago"
-                                        type="date"
-                                        value={values.nextDueDate}
-                                        onChange={handleTextChange("nextDueDate")}
-                                        error={Boolean(errors.nextDueDate)}
-                                        helperText={errors.nextDueDate ?? "Opcional. Próxima fecha esperada."}
-                                        disabled={!values.paymentPlanEnabled}
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={values.autoGeneratePayments}
+                                                onChange={handleAutoGeneratePaymentsChange}
+                                                disabled={!values.paymentPlanEnabled}
+                                            />
+                                        }
+                                        label="Incluir en motor de pagos vencidos"
                                     />
+
+                                    {errors.autoGeneratePayments ? (
+                                        <FormHelperText error>{errors.autoGeneratePayments}</FormHelperText>
+                                    ) : (
+                                        <FormHelperText>
+                                            El motor no corre en silencio: desde la página de Deudas podrás simular o generar los pagos vencidos.
+                                        </FormHelperText>
+                                    )}
                                 </Grid>
                             </Grid>
                         </Stack>

@@ -1,4 +1,5 @@
 // src/features/debts/pages/EditDebtPage.tsx
+// Edit debt page. Phase 10 supports payment automation fields.
 
 import axios from "axios";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
@@ -9,10 +10,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { CurrencyCode } from "../../../shared/types/common.types";
-import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { Page } from "../../../shared/ui/Page/Page";
+import type { CurrencyCode } from "../../../shared/types/common.types";
 import { useAccountsQuery } from "../../accounts/hooks/useAccountsQuery";
 import type { AccountRecord, AccountType } from "../../accounts/types/account.types";
 import {
@@ -145,11 +146,16 @@ function toDebtFormValues(debt: DebtRecord): DebtFormValues {
         status: debt.status,
         paymentPlanEnabled: debt.paymentPlanEnabled ?? false,
         installmentAmount: debt.installmentAmount === null ? "" : String(debt.installmentAmount),
+        expectedPrincipalAmount:
+            debt.expectedPrincipalAmount === null ? "" : String(debt.expectedPrincipalAmount),
+        expectedFeeAmount:
+            debt.expectedFeeAmount === null ? "0" : String(debt.expectedFeeAmount),
         installmentFrequency: debt.installmentFrequency ?? "",
         totalInstallments: debt.totalInstallments === null ? "" : String(debt.totalInstallments),
         paidInstallments: debt.paidInstallments === null ? "0" : String(debt.paidInstallments),
         paymentDay: debt.paymentDay === null ? "" : String(debt.paymentDay),
         nextDueDate: formatIsoDateForInput(debt.nextDueDate),
+        autoGeneratePayments: debt.autoGeneratePayments ?? false,
         notes: debt.notes ?? "",
         isVisible: debt.isVisible,
     };
@@ -175,6 +181,27 @@ function toRequiredCurrencyCode(value: DebtFormValues["currency"]): CurrencyCode
     return value;
 }
 
+function resolveExpectedPrincipal(values: DebtFormValues): number | null {
+    if (!values.paymentPlanEnabled) {
+        return null;
+    }
+
+    if (values.expectedPrincipalAmount.trim()) {
+        return Number(values.expectedPrincipalAmount.trim());
+    }
+
+    const installmentAmount = Number(values.installmentAmount.trim());
+    const expectedFeeAmount = values.expectedFeeAmount.trim()
+        ? Number(values.expectedFeeAmount.trim())
+        : 0;
+
+    if (!Number.isFinite(installmentAmount) || !Number.isFinite(expectedFeeAmount)) {
+        return null;
+    }
+
+    return Number(Math.max(0, installmentAmount - expectedFeeAmount).toFixed(2));
+}
+
 function toUpdateDebtPayload(values: DebtFormValues): UpdateDebtPayload {
     return {
         memberId: values.memberId.trim() || null,
@@ -193,6 +220,10 @@ function toUpdateDebtPayload(values: DebtFormValues): UpdateDebtPayload {
         installmentAmount: values.paymentPlanEnabled
             ? parseOptionalAmount(values.installmentAmount)
             : null,
+        expectedPrincipalAmount: resolveExpectedPrincipal(values),
+        expectedFeeAmount: values.paymentPlanEnabled
+            ? parseOptionalAmount(values.expectedFeeAmount) ?? 0
+            : null,
         installmentFrequency: values.paymentPlanEnabled
             ? values.installmentFrequency || null
             : null,
@@ -208,6 +239,9 @@ function toUpdateDebtPayload(values: DebtFormValues): UpdateDebtPayload {
         nextDueDate: values.paymentPlanEnabled
             ? values.nextDueDate.trim() || null
             : null,
+        autoGeneratePayments: values.paymentPlanEnabled
+            ? values.autoGeneratePayments
+            : false,
         notes: values.notes.trim() || null,
         isVisible: values.isVisible,
     };
@@ -370,7 +404,7 @@ export function EditDebtPage() {
     return (
         <Page
             title="Editar deuda"
-            subtitle="Actualiza la información, estado, plan de pagos y visibilidad de la deuda."
+            subtitle="Actualiza la información, estado, plan de pagos, automatización y visibilidad de la deuda."
         >
             <DebtForm
                 mode="edit"

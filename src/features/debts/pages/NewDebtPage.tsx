@@ -1,4 +1,5 @@
 // src/features/debts/pages/NewDebtPage.tsx
+// New debt page. Phase 10 sends payment automation fields.
 
 import React from "react";
 import axios from "axios";
@@ -10,10 +11,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { CurrencyCode } from "../../../shared/types/common.types";
-import { Page } from "../../../shared/ui/Page/Page";
 import { useScopeStore } from "../../../app/scope/scope.store";
 import type { ScopeType } from "../../../app/scope/scope.types";
+import { Page } from "../../../shared/ui/Page/Page";
+import type { CurrencyCode } from "../../../shared/types/common.types";
 import { useAccountsQuery } from "../../accounts/hooks/useAccountsQuery";
 import type { AccountRecord, AccountType } from "../../accounts/types/account.types";
 import {
@@ -97,6 +98,27 @@ function toRequiredCurrencyCode(value: DebtFormValues["currency"]): CurrencyCode
     return value;
 }
 
+function resolveExpectedPrincipal(values: DebtFormValues): number | null {
+    if (!values.paymentPlanEnabled) {
+        return null;
+    }
+
+    if (values.expectedPrincipalAmount.trim()) {
+        return Number(values.expectedPrincipalAmount.trim());
+    }
+
+    const installmentAmount = Number(values.installmentAmount.trim());
+    const expectedFeeAmount = values.expectedFeeAmount.trim()
+        ? Number(values.expectedFeeAmount.trim())
+        : 0;
+
+    if (!Number.isFinite(installmentAmount) || !Number.isFinite(expectedFeeAmount)) {
+        return null;
+    }
+
+    return Number(Math.max(0, installmentAmount - expectedFeeAmount).toFixed(2));
+}
+
 function toCreateDebtPayload(values: DebtFormValues): CreateDebtPayload {
     return {
         memberId: values.memberId.trim() || null,
@@ -115,6 +137,10 @@ function toCreateDebtPayload(values: DebtFormValues): CreateDebtPayload {
         installmentAmount: values.paymentPlanEnabled
             ? parseOptionalAmount(values.installmentAmount)
             : null,
+        expectedPrincipalAmount: resolveExpectedPrincipal(values),
+        expectedFeeAmount: values.paymentPlanEnabled
+            ? parseOptionalAmount(values.expectedFeeAmount) ?? 0
+            : null,
         installmentFrequency: values.paymentPlanEnabled
             ? values.installmentFrequency || null
             : null,
@@ -130,6 +156,9 @@ function toCreateDebtPayload(values: DebtFormValues): CreateDebtPayload {
         nextDueDate: values.paymentPlanEnabled
             ? values.nextDueDate.trim() || null
             : null,
+        autoGeneratePayments: values.paymentPlanEnabled
+            ? values.autoGeneratePayments
+            : false,
         notes: values.notes.trim() || null,
         isVisible: values.isVisible,
     };
@@ -149,6 +178,10 @@ function getDebtErrorMessage(error: Error | null, fallbackMessage: string): stri
     }
 
     return error.message.trim().length > 0 ? error.message : fallbackMessage;
+}
+
+function getTodayInputValue(): string {
+    return new Date().toISOString().slice(0, 10);
 }
 
 export function NewDebtPage() {
@@ -249,16 +282,19 @@ export function NewDebtPage() {
         remainingAmount: "",
         currency: currencyOptions[0].value,
         description: "",
-        startDate: "",
+        startDate: getTodayInputValue(),
         dueDate: "",
         status: "active",
         paymentPlanEnabled: false,
         installmentAmount: "",
+        expectedPrincipalAmount: "",
+        expectedFeeAmount: "0",
         installmentFrequency: "monthly",
         totalInstallments: "",
         paidInstallments: "0",
         paymentDay: "",
         nextDueDate: "",
+        autoGeneratePayments: false,
         notes: "",
         isVisible: true,
     };
