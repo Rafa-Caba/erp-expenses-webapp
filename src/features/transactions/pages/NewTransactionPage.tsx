@@ -1,12 +1,8 @@
 // src/features/transactions/pages/NewTransactionPage.tsx
 // New transaction page.
 // Normalizes cashflowDirection before sending the API payload.
-// Rules:
-// - expense => out
-// - income => in
-// - debt_payment => resolved by selected debt in TransactionForm
-// - transfer => null
-// - adjustment => in/out by amount sign when needed
+// Recurring expenses are now handled by Subscriptions, so this page always
+// sends isRecurring=false and recurrenceRule=null.
 
 import React from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -114,10 +110,8 @@ function toCreateTransactionPayload(
         status: values.status,
         reference: values.reference.trim() || null,
         notes: values.notes.trim() || null,
-        isRecurring: values.isRecurring,
-        recurrenceRule: values.isRecurring
-            ? values.recurrenceRule.trim() || null
-            : null,
+        isRecurring: false,
+        recurrenceRule: null,
         isVisible: values.isVisible,
         createdByUserId: values.createdByUserId.trim(),
     };

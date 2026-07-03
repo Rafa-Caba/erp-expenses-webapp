@@ -6,6 +6,9 @@
 // - owed_by_me => out, account where money went out.
 // - owed_to_me => in, account where money was received.
 // - cardId is not required for debt_payment; the debt is the destination.
+// Fase 9C:
+// - Transaction-level recurrence is deprecated in the UI.
+// - Recurring expenses should be handled by the Subscriptions module.
 
 import React from "react";
 import Alert from "@mui/material/Alert";
@@ -72,8 +75,7 @@ type TransactionFormField =
     | "amount"
     | "description"
     | "transactionDate"
-    | "createdByUserId"
-    | "recurrenceRule";
+    | "createdByUserId";
 
 type TransactionFormErrors = Partial<Record<TransactionFormField, string>>;
 
@@ -83,8 +85,7 @@ type TransactionFormTextField =
     | "merchant"
     | "transactionDate"
     | "reference"
-    | "notes"
-    | "recurrenceRule";
+    | "notes";
 
 type TransactionFormProps = {
     workspaceId: string | null;
@@ -235,10 +236,6 @@ function validateTransactionForm(
         if (requiresCategory(values.type) && !values.categoryId.trim()) {
             errors.categoryId = "La categoría es obligatoria para este tipo.";
         }
-    }
-
-    if (values.isRecurring && !values.recurrenceRule.trim()) {
-        errors.recurrenceRule = "La regla de recurrencia es obligatoria.";
     }
 
     return errors;
@@ -427,16 +424,6 @@ export function TransactionForm({
         }));
     };
 
-    const handleRecurringChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const checked = event.target.checked;
-
-        setValues((currentValues) => ({
-            ...currentValues,
-            isRecurring: checked,
-            recurrenceRule: checked ? currentValues.recurrenceRule : "",
-        }));
-    };
-
     const handleVisibleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setValues((currentValues) => ({
             ...currentValues,
@@ -451,6 +438,8 @@ export function TransactionForm({
             ...values,
             cashflowDirection:
                 values.type === "debt_payment" ? resolvedDebtPaymentDirection : "",
+            isRecurring: false,
+            recurrenceRule: "",
         };
         const nextErrors = validateTransactionForm(
             nextValues,
@@ -756,16 +745,10 @@ export function TransactionForm({
                                 />
                             </Grid>
 
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={values.isRecurring}
-                                            onChange={handleRecurringChange}
-                                        />
-                                    }
-                                    label="Transacción recurrente"
-                                />
+                            <Grid size={{ xs: 12 }}>
+                                <Alert severity="info">
+                                    Las recurrencias de gastos ahora se gestionan desde Suscripciones. Usa Transacciones para movimientos únicos y Suscripciones para servicios como iCloud, internet, gym o streaming.
+                                </Alert>
                             </Grid>
 
                             <Grid size={{ xs: 12, md: 6 }}>
@@ -779,22 +762,6 @@ export function TransactionForm({
                                     label="Visible"
                                 />
                             </Grid>
-
-                            {values.isRecurring ? (
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        label="Regla de recurrencia"
-                                        value={values.recurrenceRule}
-                                        onChange={handleTextChange("recurrenceRule")}
-                                        error={Boolean(errors.recurrenceRule)}
-                                        helperText={
-                                            errors.recurrenceRule ??
-                                            "Ejemplo: FREQ=MONTHLY;INTERVAL=1"
-                                        }
-                                        fullWidth
-                                    />
-                                </Grid>
-                            ) : null}
 
                             {mode === "create" ? (
                                 <Grid size={{ xs: 12 }}>
