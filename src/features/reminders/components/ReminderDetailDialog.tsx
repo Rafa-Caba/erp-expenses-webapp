@@ -1,4 +1,11 @@
 // src/features/reminders/components/ReminderDetailDialog.tsx
+// Reminder detail dialog.
+// Allows users to respond when they are recipients, even if they also manage
+// the reminder as creator/owner.
+// Styling update:
+// - Desktop uses a wider dialog and two clean action rows.
+// - Mobile keeps margin around the dialog, blurred backdrop, centered actions,
+//   and compact button labels.
 
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -10,8 +17,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import { useTheme } from "@mui/material/styles";
 
 import { useWorkspaceMemberLabelById } from "../../../shared/utils/labels/workspace-member-label.util";
 import type {
@@ -32,9 +37,11 @@ type ReminderDetailDialogProps = {
     isSubmitting: boolean;
     canManage: boolean;
     canRespond: boolean;
+    canMarkViewed: boolean;
     onClose: () => void;
     onEdit: (reminder: ReminderRecord) => void;
     onDelete: (reminder: ReminderRecord) => void;
+    onMarkViewed: (reminder: ReminderRecord) => void;
     onMarkDone: (reminder: ReminderRecord) => void;
     onDismiss: (reminder: ReminderRecord) => void;
     onOpenReminders: () => void;
@@ -155,16 +162,15 @@ export function ReminderDetailDialog({
     isSubmitting,
     canManage,
     canRespond,
+    canMarkViewed,
     onClose,
     onEdit,
     onDelete,
+    onMarkViewed,
     onMarkDone,
     onDismiss,
     onOpenReminders,
 }: ReminderDetailDialogProps) {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
     const creatorLabel = useWorkspaceMemberLabelById(
         reminder?.workspaceId ?? "",
         reminder?.createdByMemberId ?? null
@@ -179,16 +185,85 @@ export function ReminderDetailDialog({
             open={open}
             onClose={isSubmitting ? undefined : onClose}
             fullWidth
-            maxWidth="sm"
-            fullScreen={isMobile}
+            maxWidth="md"
+            fullScreen={false}
+            PaperProps={{
+                sx: {
+                    width: {
+                        xs: "calc(100% - 32px)",
+                        sm: "calc(100% - 64px)",
+                        md: 720,
+                    },
+                    maxWidth: {
+                        xs: "calc(100% - 32px)",
+                        sm: "calc(100% - 64px)",
+                        md: 720,
+                    },
+                    m: {
+                        xs: 2,
+                        sm: 4,
+                    },
+                    borderRadius: {
+                        xs: 3,
+                        sm: 3,
+                    },
+                    overflow: "hidden",
+                },
+            }}
+            BackdropProps={{
+                sx: {
+                    backdropFilter: "blur(4px)",
+                    backgroundColor: "rgba(15, 23, 42, 0.55)",
+                },
+            }}
         >
-            <DialogTitle>Detalle del reminder</DialogTitle>
+            <DialogTitle
+                sx={{
+                    px: {
+                        xs: 2.5,
+                        sm: 3,
+                    },
+                    py: 2,
+                    fontWeight: 800,
+                }}
+            >
+                Detalle del reminder
+            </DialogTitle>
 
-            <DialogContent dividers>
+            <DialogContent
+                dividers
+                sx={{
+                    px: {
+                        xs: 2.5,
+                        sm: 3,
+                    },
+                    py: {
+                        xs: 2,
+                        sm: 2.5,
+                    },
+                    maxHeight: {
+                        xs: "calc(100dvh - 260px)",
+                        sm: "calc(100dvh - 240px)",
+                    },
+                }}
+            >
                 <Stack spacing={2}>
                     {reminder.isOverdue && reminder.status !== "resolved" ? (
                         <Alert severity="warning">
                             Este reminder está vencido y aún no ha sido resuelto por todos.
+                        </Alert>
+                    ) : null}
+
+                    {canMarkViewed ? (
+                        <Alert severity="info">
+                            Este reminder todavía aparece como no visto para ti.
+                        </Alert>
+                    ) : null}
+
+                    {canRespond ? (
+                        <Alert severity="info">
+                            Este reminder está pendiente para ti. Puedes marcarlo como hecho o
+                            descartarlo para cerrar tu respuesta.
                         </Alert>
                     ) : null}
 
@@ -269,10 +344,12 @@ export function ReminderDetailDialog({
                     {reminder.description ? (
                         <>
                             <Divider />
+
                             <Stack spacing={0.5}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                     Descripción
                                 </Typography>
+
                                 <Typography
                                     variant="body2"
                                     sx={{
@@ -306,34 +383,88 @@ export function ReminderDetailDialog({
 
             <DialogActions
                 sx={{
-                    px: 3,
+                    px: {
+                        xs: 2.5,
+                        sm: 3,
+                    },
                     py: 2,
                     display: "flex",
-                    flexDirection: {
-                        xs: "column",
-                        sm: "row",
-                    },
-                    justifyContent: "space-between",
-                    alignItems: {
-                        xs: "stretch",
-                        sm: "center",
-                    },
-                    gap: 1,
-                    "& > button": {
-                        width: {
-                            xs: "100%",
-                            sm: "auto",
-                        },
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    gap: 1.25,
+                    "& > :not(style) ~ :not(style)": {
+                        ml: 0,
                     },
                 }}
             >
-                <Button
-                    variant="outlined"
-                    onClick={onOpenReminders}
-                    disabled={isSubmitting}
-                >
-                    Ir a reminders
-                </Button>
+                {canRespond || canMarkViewed ? (
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent={{
+                            xs: "center",
+                            sm: "flex-end",
+                        }}
+                        sx={{ width: "100%" }}
+                    >
+                        {canMarkViewed ? (
+                            <Button
+                                variant="outlined"
+                                onClick={() => onMarkViewed(reminder)}
+                                disabled={isSubmitting}
+                                sx={{
+                                    flex: {
+                                        xs: 1,
+                                        sm: "initial",
+                                    },
+                                    minWidth: {
+                                        sm: 130,
+                                    },
+                                }}
+                            >
+                                Visto
+                            </Button>
+                        ) : null}
+
+                        {canRespond ? (
+                            <>
+                                <Button
+                                    color="inherit"
+                                    onClick={() => onDismiss(reminder)}
+                                    disabled={isSubmitting}
+                                    sx={{
+                                        flex: {
+                                            xs: 1,
+                                            sm: "initial",
+                                        },
+                                        minWidth: {
+                                            sm: 130,
+                                        },
+                                    }}
+                                >
+                                    Descartar
+                                </Button>
+
+                                <Button
+                                    variant="contained"
+                                    onClick={() => onMarkDone(reminder)}
+                                    disabled={isSubmitting}
+                                    sx={{
+                                        flex: {
+                                            xs: 1,
+                                            sm: "initial",
+                                        },
+                                        minWidth: {
+                                            sm: 130,
+                                        },
+                                    }}
+                                >
+                                    Hecho
+                                </Button>
+                            </>
+                        ) : null}
+                    </Stack>
+                ) : null}
 
                 <Stack
                     direction={{
@@ -341,63 +472,96 @@ export function ReminderDetailDialog({
                         sm: "row",
                     }}
                     spacing={1}
-                    sx={{
-                        width: {
-                            xs: "100%",
-                            sm: "auto",
-                        },
-                        "& > button": {
+                    justifyContent={{
+                        xs: "center",
+                        sm: "space-between",
+                    }}
+                    alignItems={{
+                        xs: "stretch",
+                        sm: "center",
+                    }}
+                    sx={{ width: "100%" }}
+                >
+                    <Button
+                        variant="outlined"
+                        onClick={onOpenReminders}
+                        disabled={isSubmitting}
+                        sx={{
+                            minWidth: {
+                                sm: 150,
+                            },
+                        }}
+                    >
+                        Ir a reminders
+                    </Button>
+
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="center"
+                        sx={{
                             width: {
                                 xs: "100%",
                                 sm: "auto",
                             },
-                        },
-                    }}
-                >
-                    {canManage ? (
-                        <>
-                            <Button
-                                variant="outlined"
-                                onClick={() => onEdit(reminder)}
-                                disabled={isSubmitting}
-                            >
-                                Editar
-                            </Button>
+                        }}
+                    >
+                        {canManage ? (
+                            <>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => onEdit(reminder)}
+                                    disabled={isSubmitting}
+                                    sx={{
+                                        flex: {
+                                            xs: 1,
+                                            sm: "initial",
+                                        },
+                                        minWidth: {
+                                            sm: 110,
+                                        },
+                                    }}
+                                >
+                                    Editar
+                                </Button>
 
-                            <Button
-                                color="warning"
-                                variant="outlined"
-                                onClick={() => onDelete(reminder)}
-                                disabled={isSubmitting}
-                            >
-                                Eliminar
-                            </Button>
-                        </>
-                    ) : null}
+                                <Button
+                                    color="warning"
+                                    variant="outlined"
+                                    onClick={() => onDelete(reminder)}
+                                    disabled={isSubmitting}
+                                    sx={{
+                                        flex: {
+                                            xs: 1,
+                                            sm: "initial",
+                                        },
+                                        minWidth: {
+                                            sm: 110,
+                                        },
+                                    }}
+                                >
+                                    Eliminar
+                                </Button>
+                            </>
+                        ) : null}
 
-                    {!canManage && canRespond ? (
-                        <>
-                            <Button
-                                color="inherit"
-                                onClick={() => onDismiss(reminder)}
-                                disabled={isSubmitting}
-                            >
-                                Descartar para mí
-                            </Button>
-
-                            <Button
-                                variant="contained"
-                                onClick={() => onMarkDone(reminder)}
-                                disabled={isSubmitting}
-                            >
-                                Marcar hecho para mí
-                            </Button>
-                        </>
-                    ) : null}
-
-                    <Button onClick={onClose} disabled={isSubmitting}>
-                        Cerrar
-                    </Button>
+                        <Button
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            sx={{
+                                flex: {
+                                    xs: canManage ? 1 : "initial",
+                                    sm: "initial",
+                                },
+                                minWidth: {
+                                    xs: canManage ? 0 : 140,
+                                    sm: 110,
+                                },
+                            }}
+                        >
+                            Cerrar
+                        </Button>
+                    </Stack>
                 </Stack>
             </DialogActions>
         </Dialog>

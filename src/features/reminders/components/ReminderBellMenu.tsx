@@ -1,4 +1,8 @@
 // src/features/reminders/components/ReminderBellMenu.tsx
+// Reminder bell menu.
+// Counts only unread/unviewed reminders for the current workspace member.
+// Opening a reminder marks it as viewed when needed.
+// A user can respond if they are a pending recipient, even if they also manage the reminder.
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +35,10 @@ import {
     useRespondToReminderMutation,
 } from "../hooks/useReminderMutations";
 import { useRemindersQuery } from "../hooks/useRemindersQuery";
-import type { ReminderMemberResponseRecord, ReminderRecord } from "../types/reminder.types";
+import type {
+    ReminderMemberResponseRecord,
+    ReminderRecord,
+} from "../types/reminder.types";
 import { ReminderDetailDialog } from "./ReminderDetailDialog";
 
 type ReminderBellMenuProps = {
@@ -110,7 +117,30 @@ function getCurrentMemberResponse(
     }
 
     return (
-        reminder.responses.find((response) => response.memberId === currentMemberId) ?? null
+        reminder.responses.find((response) => response.memberId === currentMemberId) ??
+        null
+    );
+}
+
+function shouldMarkReminderAsViewed(
+    reminder: ReminderRecord,
+    currentMemberId: string | null
+): boolean {
+    const currentResponse = getCurrentMemberResponse(reminder, currentMemberId);
+
+    if (!currentResponse) {
+        return false;
+    }
+
+    return currentResponse.viewedAt === null;
+}
+
+function getUnreadBellReminders(
+    reminders: ReminderRecord[],
+    currentMemberId: string | null
+): ReminderRecord[] {
+    return reminders.filter((reminder) =>
+        shouldMarkReminderAsViewed(reminder, currentMemberId)
     );
 }
 
@@ -132,13 +162,8 @@ function canManageReminder(
 
 function canRespondToReminder(
     reminder: ReminderRecord,
-    currentMemberId: string | null,
-    currentRole: string | null
+    currentMemberId: string | null
 ): boolean {
-    if (canManageReminder(reminder, currentMemberId, currentRole)) {
-        return false;
-    }
-
     const currentResponse = getCurrentMemberResponse(reminder, currentMemberId);
 
     return currentResponse?.status === "pending" && reminder.status !== "resolved";
@@ -146,11 +171,15 @@ function canRespondToReminder(
 
 function ReminderMenuItem({
     reminder,
+    currentMemberId,
     onClick,
 }: {
     reminder: ReminderRecord;
+    currentMemberId: string | null;
     onClick: (reminder: ReminderRecord) => void;
 }) {
+    const isUnread = shouldMarkReminderAsViewed(reminder, currentMemberId);
+
     return (
         <MenuItem
             onClick={() => onClick(reminder)}
@@ -184,6 +213,10 @@ function ReminderMenuItem({
                     />
 
                     <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                        {isUnread ? (
+                            <Chip size="small" color="info" label="Sin ver" />
+                        ) : null}
+
                         {reminder.isOverdue ? (
                             <Chip size="small" color="warning" label="Vencido" />
                         ) : null}
@@ -225,11 +258,15 @@ function ReminderMenuItem({
 
 function ReminderDialogListItem({
     reminder,
+    currentMemberId,
     onClick,
 }: {
     reminder: ReminderRecord;
+    currentMemberId: string | null;
     onClick: (reminder: ReminderRecord) => void;
 }) {
+    const isUnread = shouldMarkReminderAsViewed(reminder, currentMemberId);
+
     return (
         <Box
             onClick={() => onClick(reminder)}
@@ -259,6 +296,10 @@ function ReminderDialogListItem({
                     </Typography>
 
                     <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                        {isUnread ? (
+                            <Chip size="small" color="info" label="Sin ver" />
+                        ) : null}
+
                         {reminder.isOverdue ? (
                             <Chip size="small" color="warning" label="Vencido" />
                         ) : null}
@@ -338,9 +379,14 @@ export function ReminderBellMenu({
         [remindersQuery.data?.reminders]
     );
 
+    const unreadVisibleReminders = React.useMemo(
+        () => getUnreadBellReminders(visibleReminders, currentMemberId),
+        [currentMemberId, visibleReminders]
+    );
+
     const desktopVisibleReminders = visibleReminders.slice(0, 6);
     const mobileVisibleReminders = visibleReminders.slice(0, 10);
-    const badgeCount = visibleReminders.length;
+    const badgeCount = unreadVisibleReminders.length;
 
     const desktopMenuOpen = Boolean(anchorEl);
 
@@ -356,7 +402,12 @@ export function ReminderBellMenu({
 
     const selectedCanRespond =
         selectedReminder !== null
-            ? canRespondToReminder(selectedReminder, currentMemberId, currentRole)
+            ? canRespondToReminder(selectedReminder, currentMemberId)
+            : false;
+
+    const selectedCanMarkViewed =
+        selectedReminder !== null
+            ? shouldMarkReminderAsViewed(selectedReminder, currentMemberId)
             : false;
 
     const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -376,11 +427,30 @@ export function ReminderBellMenu({
         setMobileDialogOpen(false);
     };
 
+    const handleMarkViewed = (reminder: ReminderRecord) => {
+        if (!workspaceId || !shouldMarkReminderAsViewed(reminder, currentMemberId)) {
+            return;
+        }
+
+        markReminderViewedMutation.mutate(
+            {
+                workspaceId,
+                reminderId: reminder._id,
+            },
+            {
+                onSuccess: (response) => {
+                    setSelectedReminder(response.reminder);
+                },
+            }
+        );
+    };
+
     const handleOpenReminderDetail = (reminder: ReminderRecord) => {
         handleCloseDesktopMenu();
         handleCloseMobileDialog();
+        setSelectedReminder(reminder);
 
-        if (workspaceId) {
+        if (workspaceId && shouldMarkReminderAsViewed(reminder, currentMemberId)) {
             markReminderViewedMutation.mutate(
                 {
                     workspaceId,
@@ -395,11 +465,7 @@ export function ReminderBellMenu({
                     },
                 }
             );
-
-            return;
         }
-
-        setSelectedReminder(reminder);
     };
 
     const handleCloseReminderDetail = () => {
@@ -499,7 +565,7 @@ export function ReminderBellMenu({
 
     return (
         <>
-            <Tooltip title="Reminders">
+            <Tooltip title={`Reminders sin ver: ${badgeCount}`}>
                 <IconButton color="inherit" onClick={handleOpen}>
                     <Badge color="warning" badgeContent={badgeCount} max={99}>
                         {icon}
@@ -526,7 +592,7 @@ export function ReminderBellMenu({
                             Reminders
                         </Typography>
                         <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                            {visibleReminders.length} activo(s)
+                            {badgeCount} sin ver • {visibleReminders.length} activo(s)
                         </Typography>
                     </Box>
 
@@ -553,6 +619,7 @@ export function ReminderBellMenu({
                             <ReminderMenuItem
                                 key={reminder._id}
                                 reminder={reminder}
+                                currentMemberId={currentMemberId}
                                 onClick={handleOpenReminderDetail}
                             />
                         )),
@@ -591,7 +658,7 @@ export function ReminderBellMenu({
                     <DialogContent dividers>
                         <Stack spacing={1.5}>
                             <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                {visibleReminders.length} activo(s)
+                                {badgeCount} sin ver • {visibleReminders.length} activo(s)
                             </Typography>
 
                             {remindersQuery.isLoading ? (
@@ -612,6 +679,7 @@ export function ReminderBellMenu({
                                         <ReminderDialogListItem
                                             key={reminder._id}
                                             reminder={reminder}
+                                            currentMemberId={currentMemberId}
                                             onClick={handleOpenReminderDetail}
                                         />
                                     ))}
@@ -663,9 +731,11 @@ export function ReminderBellMenu({
                 isSubmitting={isSubmitting}
                 canManage={selectedCanManage}
                 canRespond={selectedCanRespond}
+                canMarkViewed={selectedCanMarkViewed}
                 onClose={handleCloseReminderDetail}
                 onEdit={handleOpenReminderEdit}
                 onDelete={handleDeleteReminder}
+                onMarkViewed={handleMarkViewed}
                 onMarkDone={handleMarkDone}
                 onDismiss={handleDismiss}
                 onOpenReminders={handleOpenRemindersScreen}

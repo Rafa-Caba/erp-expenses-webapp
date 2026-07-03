@@ -1,4 +1,7 @@
 // src/app/shell/AppShellSidebar.tsx
+// Sidebar for the app shell.
+// Fixes context label overflow by constraining width, adding ellipsis,
+// and exposing the full context in a tooltip.
 
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
@@ -7,10 +10,10 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import Stack from "@mui/material/Stack";
 import { NavLink } from "react-router-dom";
 
 import { WorkspaceIconBadge } from "../../features/components/WorkspaceIconBadge";
@@ -26,6 +29,19 @@ type AppShellSidebarProps = {
     allItems: NavItem[];
     onNavigateItemClick: () => void;
 };
+
+function getContextDisplayLabel(args: {
+    isMobile: boolean;
+    isDesktopSidebarCollapsed: boolean;
+    contextLabel: string;
+    compactContextLabel: string;
+}): string {
+    if (args.isDesktopSidebarCollapsed || args.isMobile) {
+        return args.isMobile ? args.contextLabel : args.compactContextLabel;
+    }
+
+    return `Contexto: ${args.contextLabel}`;
+}
 
 export function AppShellSidebar({
     isMobile,
@@ -78,6 +94,13 @@ export function AppShellSidebar({
         return navButton;
     };
 
+    const expandedContextDisplayLabel = getContextDisplayLabel({
+        isMobile,
+        isDesktopSidebarCollapsed,
+        contextLabel,
+        compactContextLabel,
+    });
+
     return (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
             <Toolbar
@@ -110,6 +133,9 @@ export function AppShellSidebar({
                     display: "flex",
                     justifyContent:
                         isDesktopSidebarCollapsed && !isMobile ? "center" : "flex-start",
+                    width: "100%",
+                    minWidth: 0,
+                    overflow: "hidden",
                 }}
             >
                 {activeWorkspace ? (
@@ -125,45 +151,81 @@ export function AppShellSidebar({
                             </Box>
                         </Tooltip>
                     ) : (
-                        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
-                            <WorkspaceIconBadge
-                                workspaceType={activeWorkspace.type}
-                                iconValue={activeWorkspace.icon}
-                                colorValue={activeWorkspace.color}
-                                size={28}
-                            />
+                        <Tooltip title={expandedContextDisplayLabel} placement="right">
+                            <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                sx={{
+                                    minWidth: 0,
+                                    width: "100%",
+                                    maxWidth: "100%",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <Box sx={{ flexShrink: 0 }}>
+                                    <WorkspaceIconBadge
+                                        workspaceType={activeWorkspace.type}
+                                        iconValue={activeWorkspace.icon}
+                                        colorValue={activeWorkspace.color}
+                                        size={28}
+                                    />
+                                </Box>
 
-                            <Badge color="primary" variant="standard">
-                                <Typography
-                                    variant="body2"
+                                <Badge
+                                    color="primary"
+                                    variant="standard"
                                     sx={{
-                                        opacity: 0.85,
-                                        whiteSpace: "nowrap",
+                                        minWidth: 0,
+                                        maxWidth: "100%",
                                         overflow: "hidden",
-                                        textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {isMobile ? contextLabel : `Contexto: ${contextLabel}`}
-                                </Typography>
-                            </Badge>
-                        </Stack>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            opacity: 0.85,
+                                            display: "block",
+                                            minWidth: 0,
+                                            maxWidth: "100%",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                        }}
+                                    >
+                                        {expandedContextDisplayLabel}
+                                    </Typography>
+                                </Badge>
+                            </Stack>
+                        </Tooltip>
                     )
                 ) : (
-                    <Badge color="primary" variant="standard">
-                        <Typography
-                            variant="body2"
+                    <Tooltip title={expandedContextDisplayLabel} placement="right">
+                        <Badge
+                            color="primary"
+                            variant="standard"
                             sx={{
-                                opacity: 0.85,
-                                whiteSpace: "nowrap",
+                                minWidth: 0,
+                                maxWidth: "100%",
                                 overflow: "hidden",
-                                textOverflow: "ellipsis",
                             }}
                         >
-                            {isDesktopSidebarCollapsed || isMobile
-                                ? compactContextLabel
-                                : `Contexto: ${contextLabel}`}
-                        </Typography>
-                    </Badge>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    opacity: 0.85,
+                                    display: "block",
+                                    minWidth: 0,
+                                    maxWidth: "100%",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                            >
+                                {expandedContextDisplayLabel}
+                            </Typography>
+                        </Badge>
+                    </Tooltip>
                 )}
             </Box>
 
